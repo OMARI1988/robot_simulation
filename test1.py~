@@ -1,0 +1,10 @@
+import numpy as np
+from robot_functions import *
+
+x=1
+y=1
+z=1
+l1=.5
+l2=3
+l3=3
+print inverse_kinematics(1,1,1,0,2,2)
