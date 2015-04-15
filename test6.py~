@@ -30,5 +30,6 @@ for i in range(30):
 	a1 = -i*np.pi/180.0
 	a2 = -i*np.pi/180.0
 	R.rotate_robot(a0,a1,a2)
+	saveSnapshot(wx.ScreenDC(),S.display,i)
 
 """
