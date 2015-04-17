@@ -1,5 +1,5 @@
 from visual import *
-from shapefile import *
+#from shapefile import *
 from Polygon import *
 import numpy as np
 import wx
@@ -27,14 +27,17 @@ R._pyramid(4,6,color.green)
 R._pyramid(2,2,color.yellow)
 R._cylinder(4,1,color.cyan)
 R._sphere(3,5,color.red)
-#S = Scene()
+
+save = 0
+#save = 'save'		#saving image
+
 a1,a2,a3 = R.inverse_kinematics(4,6,0,'pick')
-R.rotate_robot(-a1,-a2,-a3)
-R.rotate_robot_with_object(0,-3*np.pi/4,3*np.pi/4)
+R.rotate_robot(-a1,-a2,-a3,save)
+R.rotate_robot_with_object(0,-3*np.pi/4,3*np.pi/4,save)
 a1,a2,a3 = R.inverse_kinematics(0,7,0,'put')
 #a1,a2,a3 = R.inverse_kinematics(0,0,0,'put')
-R.rotate_robot_with_object(-a1,-a2,-a3)
-R.rotate_robot(0,-3*np.pi/4,3*np.pi/4)
+R.rotate_robot_with_object(-a1,-a2,-a3,save)
+R.rotate_robot(0,-3*np.pi/4,3*np.pi/4,save)
 
 """
 for i in range(30):

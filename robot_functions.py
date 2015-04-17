@@ -92,12 +92,11 @@ class Robot():
 		if (x,y) not in self.chess_map:
 			self.chess_map[(x,y)] = [n]
 		else:
-			self.chess_map[(x,y)].append([n])
-		print self.chess_map
+			self.chess_map[(x,y)].append(n)
 		return (len(self.chess_map[(x,y)])-1)*.8
 
 
-	def rotate_robot(self,a0,a1,a2):
+	def rotate_robot(self,a0,a1,a2,save):
 		p0 = np.linspace(self.a0,a0,self.step) # path 0
 		p1 = np.linspace(self.a1,a1,self.step)
 		p2 = np.linspace(self.a2,a2,self.step)
@@ -108,12 +107,13 @@ class Robot():
 			self.rotate_joint(self.arm2_faces,self.arm2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 			self.rotate_joint(self.gripper1_faces,self.gripper1_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 			self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
-			self.saveSnapshot()
+			if save == 'save':
+				self.saveSnapshot()
 		self.a0 = a0
 		self.a1 = a1
 		self.a2 = a2
 
-	def rotate_robot_with_object(self,a0,a1,a2):
+	def rotate_robot_with_object(self,a0,a1,a2,save):
 		p0 = np.linspace(self.a0,a0,self.step) # path 0
 		p1 = np.linspace(self.a1,a1,self.step)
 		p2 = np.linspace(self.a2,a2,self.step)
@@ -126,7 +126,8 @@ class Robot():
 			self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 			
 			self.pyramid[1].pos = self.forward_arms(p0[i],p1[i],p2[i])
-			self.saveSnapshot()
+			if save == 'save':
+				self.saveSnapshot()
 		self.a0 = a0
 		self.a1 = a1
 		self.a2 = a2
