@@ -4,7 +4,7 @@ from Polygon import *
 import numpy as np
 import wx
 from robot_functions import *
-from scene_functions import *
+#from scene_functions import *
 
 c = (1,1,0)
 c2 = color.rgb_to_hsv(c)	# convert RGB to HSV
@@ -19,9 +19,17 @@ len_arm2 = 6
 len_gripper = 2
 len_base = 2
 
-S = Scene()
 R = Robot()
-print R.len_base
+R._box(1,0,color.red)
+R._box(4,6,color.red)
+R._box(4,6,color.blue)
+R._pyramid(4,6,color.green)
+R._pyramid(2,2,color.yellow)
+R._cylinder(4,1,color.cyan)
+R._sphere(3,5,color.red)
+#S = Scene()
+a1,a2,a3 = R.inverse_kinematics(3,5,0)
+R.rotate_robot(-a1,-a2,-a3)
 
 """
 for i in range(30):
@@ -30,6 +38,4 @@ for i in range(30):
 	a1 = -i*np.pi/180.0
 	a2 = -i*np.pi/180.0
 	R.rotate_robot(a0,a1,a2)
-	saveSnapshot(wx.ScreenDC(),S.display,i)
-
 """

@@ -2,6 +2,8 @@ from visual import *
 from shapefile import *
 from Polygon import *
 import numpy as np
+import wx
+
 # http://www.anninaruest.com/pie/2014/07/inverse-kinematics-and-the-m100rak/
 
 class Robot():
@@ -14,16 +16,114 @@ class Robot():
 		self.len_gripper = 2
 		self.len_base = 2
 
+		self.l1 = 0
+		self.l2 = self.len_arm1
+		self.l3 = self.len_arm2 + self.len_gripper
+
+		self.a0 = 0
+		self.a1 = 0
+		self.a2 = 0
+
+		self.step = 30
+		self.frame = 1
+
+		self.draw_scene()
 		self.draw_robot()
-		self.rotate_robot(0,-3*np.pi/4,0)
+		self.rotate_robot_init(0,-3*np.pi/4,3*np.pi/4)
+
+		self.chess_map = {}
+		self.box_count = 1
+		self.box = {}
+		self.sphere_count = 1
+		self.sphere = {}
+		self.cylinder_count = 1
+		self.cylinder = {}
+		self.pyramid_count = 1
+		self.pyramid = {}
+
+
+	def draw_scene(self):
+		self.display = display(title='Baby Robot',
+			x=0, y=0, width=600, height=600,
+			center=(self.chess_shift_x,self.chess_shift_y,0),
+			forward=(self.chess_shift_x-10,self.chess_shift_y,-7),
+			background=(1,1,1))
+
+		checkerboard = ( (0,1,0,1,0,1,0,1), 
+				 (1,0,1,0,1,0,1,0),
+				 (0,1,0,1,0,1,0,1),
+				 (1,0,1,0,1,0,1,0),
+		 		 (0,1,0,1,0,1,0,1), 
+				 (1,0,1,0,1,0,1,0),
+				 (0,1,0,1,0,1,0,1),
+				 (1,0,1,0,1,0,1,0) )
+		tex = materials.texture(data=checkerboard,
+				     mapping="sign",
+				     interpolate=False)
+		chess1 = box(pos=(self.chess_shift_x,self.chess_shift_y,-.3),axis=(0,0,1),size=(.4,9,9),color=color.orange,material=materials.wood)
+		chess2 = box(pos=(self.chess_shift_x,self.chess_shift_y,-.25),axis=(0,0,1), size=(.5,8,8),color=color.orange, material=tex)
+
+
+		x = arrow(pos=(0,0,0),axis=(1,0,0),length=2,shaftwidth=.2,color=color.red)
+		y = arrow(pos=(0,0,0),axis=(0,1,0),length=2,shaftwidth=.2,color=color.green)
+		z = arrow(pos=(0,0,0),axis=(0,0,1),length=2,shaftwidth=.2,color=color.blue)
+
+	def _box(self,x,y,c):
+		z = self.add_to_chess_map('box',x,y)
+		self.box[self.box_count] = box(pos=(4.5+x,2.5+y,.4+z),axis=(0,0,1),size=(.8,.8,.8),color=c,material=materials.plastic)
+		self.box_count+=1
+
+	def _cylinder(self,x,y,c):
+		z = self.add_to_chess_map('cylinder',x,y)
+		self.cylinder[self.cylinder_count] = cylinder(pos=(4.5+x,2.5+y,z),axis=(0,0,.8),radius=.4,color=c,material=materials.plastic)
+		self.cylinder_count+=1
+
+	def _sphere(self,x,y,c):
+		z = self.add_to_chess_map('sphere',x,y)
+		self.sphere[self.sphere_count] = sphere(pos=(4.5+x,2.5+y,.4+z),radius=.4,color=c,material=materials.plastic)
+		self.sphere_count+=1
+
+	def _pyramid(self,x,y,c):
+		z = self.add_to_chess_map('pyramid',x,y)
+		self.pyramid[self.pyramid_count] = pyramid(pos=(4.5+x,2.5+y,z),axis=(0,0,1),size=(.8,.8,.8),color=c,material=materials.plastic)
+		self.pyramid_count+=1
+
+	def add_to_chess_map(self,n,x,y):
+		if (x,y) not in self.chess_map:
+			self.chess_map[(x,y)] = [n]
+		else:
+			self.chess_map[(x,y)].append([n])
+		print self.chess_map
+		return (len(self.chess_map[(x,y)])-1)*.8
+
 
 	def rotate_robot(self,a0,a1,a2):
+		p0 = np.linspace(self.a0,a0,self.step) # path 0
+		p1 = np.linspace(self.a1,a1,self.step)
+		p2 = np.linspace(self.a2,a2,self.step)
+		for i in range(self.step):
+			print p0[i],p1[i],p2[i]
+			rate(10000)
+			self.rotate_joint(self.base_faces,self.base_faces_origin,(0,self.chess_shift_y,0),p0[i],0,0)
+			self.rotate_joint(self.arm1_faces,self.arm1_faces_origin,(0,self.chess_shift_y,self.len_base),p0[i],p1[i],0)
+			self.rotate_joint(self.arm2_faces,self.arm2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			self.rotate_joint(self.gripper1_faces,self.gripper1_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 
+		self.a0 = a0
+		self.a1 = a1
+		self.a2 = a2
+
+	def rotate_robot_init(self,a0,a1,a2):
 		self.rotate_joint(self.base_faces,self.base_faces_origin,(0,self.chess_shift_y,0),a0,0,0)
 		self.rotate_joint(self.arm1_faces,self.arm1_faces_origin,(0,self.chess_shift_y,self.len_base),a0,a1,0)
 		self.rotate_joint(self.arm2_faces,self.arm2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),a0,a1,a2)
 		self.rotate_joint(self.gripper1_faces,self.gripper1_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),a0,a1,a2)
 		self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),a0,a1,a2)
+
+		self.a0 = a0
+		self.a1 = a1
+		self.a2 = a2
 
 	def rotate_joint(self,obj,faces,shift,a0,a1,a2):
 		for j,v in enumerate(faces):
@@ -46,23 +146,32 @@ class Robot():
 	#       #####
 	#
 	# output: angles a1,a2,a3 of the joints, in radians
-	def inverse_kinematics(x,y,z,l1,l2,l3):
-		# used in case arm can't reach that location
-		s  = "(%g,%g,%g) is out of range." % tuple(np.around([x,y,z],2))
-		# compute the first angle
-		a1 = np.arctan2(y,x)
-		# compute the thirs angle
-		r  = np.hypot(x,y)
-		z -= l1
-		u3 = ( r**2 + z**2 - l2**2 - l3**2 ) / ( 2*l2*l3 )
-		if abs(u3)>1:    raise Exception(s)
-		a3 = -np.arccos(u3)
-		# compute the second angle
-		v  = l2 + l3*u3
-		w  = -l3 * np.sqrt(1-u3**2)  # this is sin(a3)>0 assuming 0<a3<pi
-		a2 = np.arctan2(v*z-w*r,v*r+w*z)
-		if a2<0 or a2>np.pi:    raise Exception(s)
-		return a1,a2,a3
+	def inverse_kinematics(self,x,y,z):
+		Z = len(self.chess_map[(x,y)])-1
+		if Z >= 0:
+			z -= 1.8 + Z
+			x += 4.5
+			y = 3.5 - y
+			# used in case arm can't reach that location
+			s  = "(%g,%g,%g) is out of range." % tuple(np.around([x,y,z],2))
+			# compute the first angle
+			a1 = np.arctan2(y,x)
+			# compute the thirs angle
+			r  = np.hypot(x,y)
+			z -= self.l1
+			u3 = ( r**2 + z**2 - self.l2**2 - self.l3**2 ) / ( 2*self.l2*self.l3 )
+			if abs(u3)>1:    raise Exception(s)
+			a3 = -np.arccos(u3)
+			# compute the second angle
+			v  = self.l2 + self.l3*u3
+			w  = -self.l3 * np.sqrt(1-u3**2)  # this is sin(a3)>0 assuming 0<a3<pi
+			a2 = np.arctan2(v*z-w*r,v*r+w*z)
+			if a2<0 or a2>np.pi:    raise Exception(s)
+			return a1,a2,a3
+		else:
+			print 'no object there !'
+			return self.a1,self.a2,self.a3
+			
 
 	#----------------------------------------------------------------------------------#
 	def draw_robot(self):
@@ -111,5 +220,41 @@ class Robot():
 		self.gripper1_faces_origin = self.gripper1_faces.pos.copy()
 		self.gripper2_faces_origin = self.gripper2_faces.pos.copy()
 
+
+	def saveSnapshot(self,i):
+	    # based largely on code posted to wxpython-users by Andrea Gavana 2006-11-08
+	    dcSource = wx.ScreenDC()
+	    size = dcSource.Size
+
+	    # Create a Bitmap that will later on hold the screenshot image
+	    # Note that the Bitmap must have a size big enough to hold the screenshot
+	    # -1 means using the current default colour depth
+	    bmp = wx.EmptyBitmap(scene2.width,scene2.height-20)
+
+	    # Create a memory DC that will be used for actually taking the screenshot
+	    memDC = wx.MemoryDC()
+
+	    # Tell the memory DC to use our Bitmap
+	    # all drawing action on the memory DC will go to the Bitmap now
+	    memDC.SelectObject(bmp)
+
+	    # Blit (in this case copy) the actual screen on the memory DC
+	    # and thus the Bitmap
+	    memDC.Blit( 0, # Copy to this X coordinate
+		0, # Copy to this Y coordinate
+		scene2.width, # Copy this width
+		scene2.height-20, # Copy this height
+		dcSource, # From where do we copy?
+		scene2.x, # What's the X offset in the original DC?
+		scene2.y+20  # What's the Y offset in the original DC?
+		)
+
+	    # Select the Bitmap out of the memory DC by selecting a new
+	    # uninitialized Bitmap
+	    memDC.SelectObject(wx.NullBitmap)
+
+	    img = bmp.ConvertToImage()
+	    img.SaveFile(str(i)+'.png', wx.BITMAP_TYPE_PNG)
+	    print i,'image saved..'
 
 

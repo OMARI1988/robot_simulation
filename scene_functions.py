@@ -40,40 +40,6 @@ class Scene():
 		z = arrow(pos=(0,0,0),axis=(0,0,1),length=2,shaftwidth=.2,color=color.blue)
 
 
-	def saveSnapshot(self,i):
-	    # based largely on code posted to wxpython-users by Andrea Gavana 2006-11-08
-	    dcSource = wx.ScreenDC()
-	    size = dcSource.Size
 
-	    # Create a Bitmap that will later on hold the screenshot image
-	    # Note that the Bitmap must have a size big enough to hold the screenshot
-	    # -1 means using the current default colour depth
-	    bmp = wx.EmptyBitmap(scene2.width,scene2.height-20)
-
-	    # Create a memory DC that will be used for actually taking the screenshot
-	    memDC = wx.MemoryDC()
-
-	    # Tell the memory DC to use our Bitmap
-	    # all drawing action on the memory DC will go to the Bitmap now
-	    memDC.SelectObject(bmp)
-
-	    # Blit (in this case copy) the actual screen on the memory DC
-	    # and thus the Bitmap
-	    memDC.Blit( 0, # Copy to this X coordinate
-		0, # Copy to this Y coordinate
-		scene2.width, # Copy this width
-		scene2.height-20, # Copy this height
-		dcSource, # From where do we copy?
-		scene2.x, # What's the X offset in the original DC?
-		scene2.y+20  # What's the Y offset in the original DC?
-		)
-
-	    # Select the Bitmap out of the memory DC by selecting a new
-	    # uninitialized Bitmap
-	    memDC.SelectObject(wx.NullBitmap)
-
-	    img = bmp.ConvertToImage()
-	    img.SaveFile(str(i)+'.png', wx.BITMAP_TYPE_PNG)
-	    print i,'image saved..'
 
 
