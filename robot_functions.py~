@@ -25,7 +25,7 @@ class Robot():
 		self.a2 = 0
 
 		self.step = 30
-		self.frame = 1
+		self.frame_number = 1
 
 		self.draw_scene()
 		self.draw_robot()
@@ -102,14 +102,31 @@ class Robot():
 		p1 = np.linspace(self.a1,a1,self.step)
 		p2 = np.linspace(self.a2,a2,self.step)
 		for i in range(self.step):
-			print p0[i],p1[i],p2[i]
 			rate(10000)
 			self.rotate_joint(self.base_faces,self.base_faces_origin,(0,self.chess_shift_y,0),p0[i],0,0)
 			self.rotate_joint(self.arm1_faces,self.arm1_faces_origin,(0,self.chess_shift_y,self.len_base),p0[i],p1[i],0)
 			self.rotate_joint(self.arm2_faces,self.arm2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 			self.rotate_joint(self.gripper1_faces,self.gripper1_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
 			self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			self.saveSnapshot()
+		self.a0 = a0
+		self.a1 = a1
+		self.a2 = a2
 
+	def rotate_robot_with_object(self,a0,a1,a2):
+		p0 = np.linspace(self.a0,a0,self.step) # path 0
+		p1 = np.linspace(self.a1,a1,self.step)
+		p2 = np.linspace(self.a2,a2,self.step)
+		for i in range(self.step):
+			rate(10000)
+			self.rotate_joint(self.base_faces,self.base_faces_origin,(0,self.chess_shift_y,0),p0[i],0,0)
+			self.rotate_joint(self.arm1_faces,self.arm1_faces_origin,(0,self.chess_shift_y,self.len_base),p0[i],p1[i],0)
+			self.rotate_joint(self.arm2_faces,self.arm2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			self.rotate_joint(self.gripper1_faces,self.gripper1_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			self.rotate_joint(self.gripper2_faces,self.gripper2_faces_origin,(self.len_arm1,self.chess_shift_y,self.len_base),p0[i],p1[i],p2[i])
+			
+			self.pyramid[1].pos = self.forward_arms(p0[i],p1[i],p2[i])
+			self.saveSnapshot()
 		self.a0 = a0
 		self.a1 = a1
 		self.a2 = a2
@@ -146,10 +163,18 @@ class Robot():
 	#       #####
 	#
 	# output: angles a1,a2,a3 of the joints, in radians
-	def inverse_kinematics(self,x,y,z):
-		Z = len(self.chess_map[(x,y)])-1
+	def inverse_kinematics(self,x,y,z,action):
+		if action == 'pick':
+			if (x,y) not in self.chess_map:
+				Z=-1
+			else:
+				Z = len(self.chess_map[(x,y)])-1
+		if action == 'put':
+			Z=0
+		Z = Z*.8
 		if Z >= 0:
-			z -= 1.8 + Z
+			z -= 1.8
+			z += Z
 			x += 4.5
 			y = 3.5 - y
 			# used in case arm can't reach that location
@@ -221,7 +246,7 @@ class Robot():
 		self.gripper2_faces_origin = self.gripper2_faces.pos.copy()
 
 
-	def saveSnapshot(self,i):
+	def saveSnapshot(self):
 	    # based largely on code posted to wxpython-users by Andrea Gavana 2006-11-08
 	    dcSource = wx.ScreenDC()
 	    size = dcSource.Size
@@ -229,7 +254,7 @@ class Robot():
 	    # Create a Bitmap that will later on hold the screenshot image
 	    # Note that the Bitmap must have a size big enough to hold the screenshot
 	    # -1 means using the current default colour depth
-	    bmp = wx.EmptyBitmap(scene2.width,scene2.height-20)
+	    bmp = wx.EmptyBitmap(self.display.width,self.display.height-20)
 
 	    # Create a memory DC that will be used for actually taking the screenshot
 	    memDC = wx.MemoryDC()
@@ -242,11 +267,11 @@ class Robot():
 	    # and thus the Bitmap
 	    memDC.Blit( 0, # Copy to this X coordinate
 		0, # Copy to this Y coordinate
-		scene2.width, # Copy this width
-		scene2.height-20, # Copy this height
+		self.display.width, # Copy this width
+		self.display.height-20, # Copy this height
 		dcSource, # From where do we copy?
-		scene2.x, # What's the X offset in the original DC?
-		scene2.y+20  # What's the Y offset in the original DC?
+		self.display.x, # What's the X offset in the original DC?
+		self.display.y+20  # What's the Y offset in the original DC?
 		)
 
 	    # Select the Bitmap out of the memory DC by selecting a new
@@ -254,7 +279,19 @@ class Robot():
 	    memDC.SelectObject(wx.NullBitmap)
 
 	    img = bmp.ConvertToImage()
-	    img.SaveFile(str(i)+'.png', wx.BITMAP_TYPE_PNG)
-	    print i,'image saved..'
+	    if self.frame_number<10:
+		j = '000'+str(self.frame_number)
+	    if self.frame_number<100:
+		j = '00'+str(self.frame_number)
+	    if self.frame_number<1000:
+		j = '0'+str(self.frame_number)
+	    img.SaveFile('frame_'+j+'.png', wx.BITMAP_TYPE_PNG)
+	    print self.frame_number,'image saved..'
+	    self.frame_number+=1
 
-
+	def forward_arms(self,a1,a2,a3):
+		z = self.l2*np.sin(a2)+self.l3*np.sin(a3+a2)
+		r = self.l2*np.cos(a2)+self.l3*np.cos(a3+a2)
+		x = r*np.cos(a1)
+		y = r*np.sin(a1)
+		return (x,y+self.chess_shift_y,1.8-z)
