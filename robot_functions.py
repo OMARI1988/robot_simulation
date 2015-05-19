@@ -12,6 +12,14 @@ import pyscreenshot as ImageGrab
 class Robot():
     #-----------------------------------------------------------------------------------------------------#     initial
     def __init__(self):
+        self._initilize_values()
+        self.draw_scene()
+        self.draw_robot()
+        self.Data = read_data()
+	        
+    
+    #-----------------------------------------------------------------------------------------------------#     initial
+    def _initilize_values(self):
         self.chess_shift_x = 8
         self.chess_shift_y = 6
         self.len_arm1 = 8
@@ -26,12 +34,9 @@ class Robot():
         self.a2 = 0
         self.step = 20
         self.frame_number = 0
-        self.draw_scene()
-        self.draw_robot()
         self.object = {}
         self.object_shape = {}
         self.words = []
-        self.Data = read_data()
         self.positions = {}
         # manage diroctories to store data and images
         self.image_dir = '/home/omari/Datasets/robot/scenes/'

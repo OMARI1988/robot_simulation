@@ -8,7 +8,7 @@ R = Robot()
 save = 0
 #save = 'save'		#saving image
 
-for scene in range(891,1001):
+for scene in range(17,30):
     print 'simulating scene number :',scene
     R._print_scentenses(scene)                  # print the sentences on terminal
     R._initialize_scene()                       # place the robot and objects in the initial scene position without saving or motion

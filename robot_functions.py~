@@ -12,6 +12,13 @@ import pyscreenshot as ImageGrab
 class Robot():
     #-----------------------------------------------------------------------------------------------------#     initial
     def __init__(self):
+        self.draw_scene()
+        self.draw_robot()
+        self.Data = read_data()
+	        
+    
+    #-----------------------------------------------------------------------------------------------------#     initial
+    def _initilize_values(self):
         self.chess_shift_x = 8
         self.chess_shift_y = 6
         self.len_arm1 = 8
@@ -26,12 +33,9 @@ class Robot():
         self.a2 = 0
         self.step = 20
         self.frame_number = 0
-        self.draw_scene()
-        self.draw_robot()
         self.object = {}
         self.object_shape = {}
         self.words = []
-        self.Data = read_data()
         self.positions = {}
         # manage diroctories to store data and images
         self.image_dir = '/home/omari/Datasets/robot/scenes/'
@@ -128,24 +132,24 @@ class Robot():
         I = self.Data['scenes'][self.scene]['I_move']
         F = self.Data['scenes'][self.scene]['F_move']
         if I != []:
-        # move the robot alone
-        initial_position = self.Data['gripper'][self.Data['scenes'][self.scene]['initial']]
-        final_position = l1[I]['position']
-        if final_position != initial_position:
-            a1,a2,a3 = self._inverse_kinematics(final_position[0],final_position[1],final_position[2])
+            # move the robot alone
+            initial_position = self.Data['gripper'][self.Data['scenes'][self.scene]['initial']]
+            final_position = l1[I]['position']
+            if final_position != initial_position:
+                a1,a2,a3 = self._inverse_kinematics(final_position[0],final_position[1],final_position[2])
+                self.rotate_robot(-a1,-a2,-a3,save)
+            if self.object_shape[(final_position[0],final_position[1],final_position[2])] == 'cube': 
+                z_offset = +.22
+            if self.object_shape[(final_position[0],final_position[1],final_position[2])] == 'prism': 
+                z_offset = -.18
+            # move the robot and the object
+            initial_position = final_position
+            final_position = l2[F]['position']
+            self.rotate_robot_with_object(initial_position, final_position, z_offset, save)
+            # move the robot and the object down
+            final_position = self.Data['gripper'][self.Data['scenes'][self.scene]['final']]
+            a1,a2,a3 = self._inverse_kinematics(final_position[0],final_position[1],final_position[2]) 
             self.rotate_robot(-a1,-a2,-a3,save)
-        if self.object_shape[(final_position[0],final_position[1],final_position[2])] == 'cube': 
-            z_offset = +.22
-        if self.object_shape[(final_position[0],final_position[1],final_position[2])] == 'prism': 
-            z_offset = -.18
-        # move the robot and the object
-        initial_position = final_position
-        final_position = l2[F]['position']
-        self.rotate_robot_with_object(initial_position, final_position, z_offset, save)
-        # move the robot and the object down
-        final_position = self.Data['gripper'][self.Data['scenes'][self.scene]['final']]
-        a1,a2,a3 = self._inverse_kinematics(final_position[0],final_position[1],final_position[2]) 
-        self.rotate_robot(-a1,-a2,-a3,save)
         
     #-----------------------------------------------------------------------------------------------------#     save motion
     def _save_motion(self):
