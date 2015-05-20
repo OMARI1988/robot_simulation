@@ -2,9 +2,10 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+import random
 dir1 = '/home/omari/Datasets/robot/motion/scene'
 
-for scene in range(1,30):
+for scene in range(1,2):
     G=nx.Graph()
     print 'reading scene number:',scene
     f = open(dir1+str(scene)+'.txt', 'r')
@@ -52,33 +53,9 @@ for scene in range(1,30):
         O[i]['speed'] = np.delete(O[i]['speed'],ind)
         
     # compute relative motion
-    R = {}
-    r_speed = []
+    # similar speed == 1 different == 0
+    frames = len(O['G']['speed'])
     keys = O.keys()
-    for i in range(len(keys)-1):
-        for j in range(i+1,len(keys)):
-            k1 = keys[i]
-            k2 = keys[j]
-            for s in np.abs(O[k1]['speed'] - O[k2]['speed']):
-                if r_speed == []: r_speed = [s]
-                else : r_speed = np.vstack([r_speed,s])
-                
-                
-    # cluster relative motion
-    est = KMeans(n_clusters=2)
-    est.fit(r_speed)
-    for i in range(len(keys)-1):
-        for j in range(i+1,len(keys)):
-            r = []
-            k1 = keys[i]
-            k2 = keys[j]
-            for s in np.abs(O[k1]['speed'] - O[k2]['speed']):
-                if r == []: r = [s]
-                else : r = np.vstack([r,s])
-            R[(k1,k2)] = est.predict(r)
-            
-    # comput the transition intervals
-    frames = len(r)
     n = np.sum(range(len(keys)))
     r = np.zeros((n,frames),dtype=np.int8)
     counter = 0
@@ -86,7 +63,18 @@ for scene in range(1,30):
         for j in range(i+1,len(keys)):
             k1 = keys[i]
             k2 = keys[j]
-            r[counter,:] = R[(k1,k2)]
+            for count,s in enumerate(np.abs(O[k1]['speed'] - O[k2]['speed'])):
+                if s != 0: a = 0
+                elif s == 0: a = 1
+                r[counter,count] = a
+            counter += 1
+                
+    
+    # comput the transition intervals
+    for i in range(len(keys)-1):
+        for j in range(i+1,len(keys)):
+            k1 = keys[i]
+            k2 = keys[j]
             counter += 1
     col = r[:,0]
     transition = [0]
@@ -94,15 +82,46 @@ for scene in range(1,30):
         if np.sum(np.abs(col-r[:,i]))!=0:
             col = r[:,i]
             transition.append(i)
-                
-    # plot the different graphs
-    for T in transition:
+    
+          
+    f, ax = plt.subplots(len(transition),2) # first col motion , second distance
+
+    # plot the different graphs of motion
+    for sub,T in enumerate(transition):
+        print 'plotting graph : '+str(sub+1)+' from '+str(len(transition))
+        for edge in G.edges(): G.remove_edge(edge[0],edge[1])
+        counter = 0
         for i in range(len(keys)-1):
             for j in range(i+1,len(keys)):
-                G.add_edge(k1,k2,speed=np.abs(O[k1]['speed'][0] - O[k2]['speed'][0]))
-        nx.draw(G)  # networkx draw()
+                k1 = keys[i]
+                k2 = keys[j]
+                r_speed = r[counter,T]
+                counter += 1
+                if r_speed == 1:    G.add_edge(k1,k2,speed=1)
+        plt.sca(ax[sub,0])
+        
+        # layout graphs with positions using graphviz neato
+        pos=nx.graphviz_layout(G,prog="neato")
+        # color nodes the same in each connected subgraph
+        C=nx.connected_component_subgraphs(G)
+        colors = np.linspace(.2,.8,2)
+        for count,g in enumerate(C):
+            #c=[random.random()]*nx.number_of_nodes(g) # random color...
+            c=[colors[count]]*nx.number_of_nodes(g) # same color...
+            nx.draw(g,
+                 pos,
+                 node_size=50,
+                 node_color=c,
+                 vmin=0.0,
+                 vmax=1.0,
+                 with_labels=False
+                 )
+        #nx.draw(G)  # networkx draw()
+        ax[sub,0].axis('on')
+        plt.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
+        plt.tick_params(axis='y',which='both',right='off',left='off',labelleft='off')
         #plt.savefig("node_colormap.png") # save as png
-        plt.show() # display
+    plt.show() # display
     
 
     

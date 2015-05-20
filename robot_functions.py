@@ -483,7 +483,7 @@ class Robot():
             j = '00'+str(self.frame_number)
         elif self.frame_number<1000:
             j = '0'+str(self.frame_number)
-        img.SaveFile(self.image_dir+self.scene+'/frame_'+j+'.png', wx.BITMAP_TYPE_PNG)
+        img.SaveFile(self.image_dir+str(self.scene)+'/frame_'+j+'.png', wx.BITMAP_TYPE_PNG)
         #img.SaveFile(self.image_dir+self.scene+'_'+j+'.png', wx.BITMAP_TYPE_PNG)
         #img1 = cv2.imread(self.image_dir+self.scene+'_'+j+'.png')
         #cv2.imshow('test',img1)

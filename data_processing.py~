@@ -1,15 +1,12 @@
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-import random
 dir1 = '/home/omari/Datasets/robot/motion/scene'
 
-for scene in range(1,2):
-    G=nx.Graph()
+def read(scene):
     print 'reading scene number:',scene
     f = open(dir1+str(scene)+'.txt', 'r')
     data = f.read().split('\n')
+    G = nx.Graph()
     sentences = []
     objects = []
     gripper = []
@@ -38,8 +35,10 @@ for scene in range(1,2):
         O['G'][data[o].split(':')[0]] = np.asarray(map(float,data[o].split(':')[1].split(',')[:-1]))      #x
         O['G'][data[o+1].split(':')[0]] = np.asarray(map(float,data[o+1].split(':')[1].split(',')[:-1]))  #y
         O['G'][data[o+2].split(':')[0]] = np.asarray(map(float,data[o+2].split(':')[1].split(',')[:-1]))  #z
-        
-    # comuting motion
+    return O,G,S
+    
+def motion(O):
+    # computing motion
     for i in O:
         dx = (O[i]['x'][:-1]-O[i]['x'][1:])**2
         dy = (O[i]['y'][:-1]-O[i]['y'][1:])**2
@@ -69,7 +68,6 @@ for scene in range(1,2):
                 r[counter,count] = a
             counter += 1
                 
-    
     # comput the transition intervals
     for i in range(len(keys)-1):
         for j in range(i+1,len(keys)):
@@ -82,8 +80,7 @@ for scene in range(1,2):
         if np.sum(np.abs(col-r[:,i]))!=0:
             col = r[:,i]
             transition.append(i)
-    
-          
+            
     f, ax = plt.subplots(len(transition),2) # first col motion , second distance
     # plot the different graphs of motion
     for sub,T in enumerate(transition):
@@ -121,19 +118,5 @@ for scene in range(1,2):
         plt.tick_params(axis='y',which='both',right='off',left='off',labelleft='off')
         #plt.savefig("node_colormap.png") # save as png
     plt.show() # display
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     

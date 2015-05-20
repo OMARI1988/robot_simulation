@@ -8,7 +8,7 @@ R = Robot()
 save = 0
 #save = 'save'		#saving image
 
-for scene in range(17,30):
+for scene in range(19,200):
     R._initilize_values()
     print 'simulating scene number :',scene
     R._print_scentenses(scene)                  # print the sentences on terminal
