@@ -89,13 +89,11 @@ for scene in range(1,2):
             if i not in transition: transition.append(i)
     transition = sorted(transition)
             
-            
-            
 
             
-    f, ax = plt.subplots(len(transition),3) # first col motion , second distance
+    f, ax = plt.subplots(len(transition),2) # first col motion , second distance
     
-    for feature in range(3):
+    for feature in range(2):
         # plot the different graphs of motion and distance
         for sub,T in enumerate(transition):
             print 'plotting graph : '+str(sub+1)+' from '+str(len(transition))
