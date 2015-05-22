@@ -5,14 +5,15 @@ import random
 from data_processing import *
 import cv2
 from os import listdir
-import matplotlib.patches as mpatches
-from matplotlib.collections import PatchCollection
+import matplotlib as mat
+import colorsys
 
 
 class Learn():
     def __init__(self):
         self.dir1 = '/home/omari/Datasets/robot/motion/scene'
         self.dir2 = '/home/omari/Datasets/robot/scenes/'
+        self.dir3 = '/home/omari/Datasets/robot/graphs/scene'
         #plt.ion()
         
     def _read(self,scene):
@@ -219,8 +220,9 @@ class Learn():
             self.loc_final[key] = [self.Data[key]['x'][-1],self.Data[key]['y'][-1]]
 
     def _plot_graphs(self):
-        self.f,self.ax = plt.subplots(len(self.transition['all']),3) # first col motion , second distance
-        for feature in range(2):
+        self.f,self.ax = plt.subplots(len(self.transition['all']),4,figsize=(14,10)) # first col motion , second distance
+        self.f.suptitle('Scene : '+str(self.scene), fontsize=20)
+        for feature in [0,2]:
             # plot the different graphs of motion and distance
             for sub,T in enumerate(self.transition['all']):
                 plt.sca(self.ax[sub,feature])
@@ -231,7 +233,7 @@ class Learn():
                             if i<T: t=i
                     else: t=T
                     G=self.G_motion[t]['graph']
-                elif feature == 1: 
+                elif feature == 2: 
                     if T not in self.transition['touch']:
                         for i in self.transition['touch']:
                             if i<T: t=i
@@ -258,16 +260,20 @@ class Learn():
                 self.ax[sub,feature].axis('equal')
                 plt.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
                 plt.tick_params(axis='y',which='both',right='off',left='off',labelleft='off')
-                #plt.savefig("node_colormap.png") # save as png
+                if feature == 0:
+                    self.ax[sub,feature].set_ylabel('frame : '+str(T))
+                    if sub == 0:
+                        self.ax[sub,feature].set_title('motion')
+                if feature == 2:
+                    self.ax[sub,feature].set_ylabel('frame : '+str(T))
+                    if sub == 0:
+                        self.ax[sub,feature].set_title('connectivity')
+                        
         #plt.draw() # display
         #plt.pause(.00001)
         #plt.show()
         
-    def _plot_final_graph(self):
-    
-        for count,T in enumerate(self.transition['all']):
-            plt.sca(self.ax[count,2])
-        
+    def _create_moving_obj_graph(self,T):
             # Creating the graph structure
             G = nx.Graph()
             # creating the object layer
@@ -296,7 +302,6 @@ class Learn():
                     G.add_edge(str(key),str(key)+'_l')
                     obj_count+=1
                         
-            ######################################################################################################## for now start and end only ! this should change to as many motions
             # creating the relation layer
             
             k1 = self.m_obj
@@ -327,45 +332,73 @@ class Learn():
                     G.add_edge(str(k1)+'_'+str(k2),str(k1)+'_'+str(k2)+'_dist')
                     G.add_edge(str(k1)+'_'+str(k2),str(k1)+'_'+str(k2)+'_dir')
                     G.add_edge(str(k1)+'_'+str(k2),str(k1)+'_'+str(k2)+'_mot')
+            return G
             
-            agents = list((n for n in G if G.node[n]['type1']=='G'))
-            m_objects = list((n for n in G if G.node[n]['type1']=='mo'))
-            objects = list((n for n in G if G.node[n]['type1']=='o'))
-            objects_f = list((n for n in G if G.node[n]['type1']=='of'))
-            relations = list((n for n in G if G.node[n]['type1']=='r'))
-            relations_f = list((n for n in G if G.node[n]['type1']=='rf'))
+    def _plot_final_graph(self):
+        for feature in [1,3]:
+            for sub,T in enumerate(self.transition['all']):
+                plt.sca(self.ax[sub,feature])
             
-            #pos=nx.graphviz_layout(G,prog="neato")
-            pos = nx.get_node_attributes(G,'position')
-            
-            nx.draw_networkx_nodes(G,pos, nodelist=agents, node_color='r', node_size=100, alpha=1)
-            nx.draw_networkx_nodes(G,pos, nodelist=m_objects, node_color='c', node_size=100, alpha=1)
-            nx.draw_networkx_nodes(G,pos, nodelist=objects, node_color='b', node_size=100, alpha=1)
-            nx.draw_networkx_nodes(G,pos, nodelist=objects_f, node_color='y', node_size=100, alpha=0.8)
-            nx.draw_networkx_nodes(G,pos, nodelist=relations, node_color='g', node_size=100, alpha=0.8)
-            nx.draw_networkx_nodes(G,pos, nodelist=relations_f, node_color='y', node_size=100, alpha=0.8)
-            #nx.draw_networkx_edges(G,pos, with_labels=False, edge_color='r', width=6.0, alpha=0.5)
-            nx.draw_networkx_edges(G,pos, alpha=0.8)
+                G = self._create_moving_obj_graph(T)
+                # Creating the group effect
+                if feature == 1: 
+                    if T not in self.transition['motion']:
+                        for i in self.transition['motion']:
+                            if i<T: t=i
+                    else: t=T
+                    G_group = self.G_motion[t]['groups']
+                if feature == 3: 
+                    if T not in self.transition['touch']:
+                        for i in self.transition['touch']:
+                            if i<T: t=i
+                    else: t=T
+                    G_group = self.G_touch[t]['groups']
+                    
+                N = len(G_group)
+                HSV = [(x*.9/N, 0.9, 0.9) for x in range(N)]
+                RGB = map(lambda x: colorsys.hsv_to_rgb(*x), HSV)
+                for c,group in enumerate(G_group):
+                    for node in group:
+                        p = G.node[node]['position']
+                        rect1 = mat.patches.Rectangle((p[0]-.4,p[1]-3), .8, 4, color=RGB[c],alpha=.4)
+                        self.ax[sub,feature].add_patch(rect1)
+                    
+                agents = list((n for n in G if G.node[n]['type1']=='G'))
+                m_objects = list((n for n in G if G.node[n]['type1']=='mo'))
+                objects = list((n for n in G if G.node[n]['type1']=='o'))
+                objects_f = list((n for n in G if G.node[n]['type1']=='of'))
+                relations = list((n for n in G if G.node[n]['type1']=='r'))
+                relations_f = list((n for n in G if G.node[n]['type1']=='rf'))
+                
+                #pos=nx.graphviz_layout(G,prog="neato")
+                pos = nx.get_node_attributes(G,'position')
+                
+                nx.draw_networkx_nodes(G,pos, nodelist=agents, node_color='r', node_size=100, alpha=1)
+                nx.draw_networkx_nodes(G,pos, nodelist=m_objects, node_color='c', node_size=100, alpha=1)
+                nx.draw_networkx_nodes(G,pos, nodelist=objects, node_color='b', node_size=100, alpha=1)
+                nx.draw_networkx_nodes(G,pos, nodelist=objects_f, node_color='y', node_size=100, alpha=0.8)
+                nx.draw_networkx_nodes(G,pos, nodelist=relations, node_color='g', node_size=100, alpha=0.8)
+                nx.draw_networkx_nodes(G,pos, nodelist=relations_f, node_color='y', node_size=100, alpha=0.8)
+                #nx.draw_networkx_edges(G,pos, with_labels=False, edge_color='r', width=6.0, alpha=0.5)
+                nx.draw_networkx_edges(G,pos, alpha=0.8)
 
-                     
-            self.ax[count,2].axis('on')
-            plt.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
-            plt.tick_params(axis='y',which='both',right='off',left='off',labelleft='off')
-            
-            # add a fancy box
-            patches = []
-            fancybox = mpatches.FancyBboxPatch(
-            [1.6, 0], .8, 4,
-            boxstyle=mpatches.BoxStyle("Round", pad=0.0))
-            
-            patches.append(fancybox)
-            
-            colors = np.linspace(0, 1, len(patches))
-            collection = PatchCollection(patches, cmap=plt.cm.hsv, alpha=0.2)
-            collection.set_array(np.array(colors))
-            self.ax[count,2].add_collection(collection)
+                if feature == 1:
+                    self.ax[sub,feature].set_ylabel('frame : '+str(T))
+                    if sub == 0:
+                        self.ax[sub,feature].set_title('motion')
+                        
+                if feature == 3:
+                    self.ax[sub,feature].set_ylabel('frame : '+str(T))
+                    if sub == 0:
+                        self.ax[sub,feature].set_title('connectivity')
+                        
+                self.ax[sub,2].axis('on')
+                plt.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
+                plt.tick_params(axis='y',which='both',right='off',left='off',labelleft='off')
+                
 
-            #plt.savefig("node_colormap.png") # save as png
+
+        plt.savefig(self.dir3+'_'+str(self.scene)+'.png',dpi=200) # save as png
         plt.show() # display
 
         
@@ -380,7 +413,7 @@ class Learn():
         
     def _print_scentenses(self):
         for count,i in enumerate(self.S):
-            print count,'-',i
+            print count,'-',self.S[i]
         #print self.words
         #print len(self.words)
         print '--------------------------'
@@ -396,7 +429,6 @@ def main():
         L._transition()                     
         L._grouping()
         L._compute_features_for_moving_object()
-        #L._create_moving_graph()
         L._plot_graphs()
         L._plot_final_graph()
         #L._plot_scene()
