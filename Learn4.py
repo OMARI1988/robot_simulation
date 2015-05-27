@@ -58,7 +58,7 @@ for scene in range(1,500):
             hyp[word]['shape'][shape] += 1
             hyp[word]['counter'] += 1
 
-print hyp['cube']
+print hyp['blue']
         
     
     

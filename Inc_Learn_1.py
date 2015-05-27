@@ -6,7 +6,7 @@ from data_processing import *
 dir1 = '/home/omari/Datasets/robot/motion/scene'
 
 hyp = {}
-for scene in range(1,500):
+for scene in range(1,120):
     O,G,S = read(scene)     #Objects, Graph, Sentences
     
     # initial parameter
@@ -33,6 +33,18 @@ for scene in range(1,500):
     c = O[o_mov]['color']
     color = (c[0],c[1],c[2])
     shape = O[o_mov]['shape']
+    
+    colors = []
+    shapes = []
+    for i in O:
+        if i != 'G':
+            c = O[i]['color']
+            C = (c[0],c[1],c[2])
+            s = O[i]['shape']
+            if C not in colors: colors.append(C)
+            if s not in shapes: shapes.append(s)
+            
+    
     for i in S:
         # unique words
         words = []
@@ -47,18 +59,24 @@ for scene in range(1,500):
                 hyp[word]['color'] = {}
                 hyp[word]['counter'] = 0
                 
-            if shape not in hyp[word]['shape']:
-                hyp[word]['shape'][shape] = 0
+            for shape in shapes:
+                if shape not in hyp[word]['shape']:
+                    hyp[word]['shape'][shape] = 0
+                    
+            for color in colors:    
+                if color not in hyp[word]['color']:
+                    hyp[word]['color'][color] = 0
                 
-            if color not in hyp[word]['color']:
-                hyp[word]['color'][color] = 0
+            for color in colors:    
+                hyp[word]['color'][color] += 1
                 
-            
-            hyp[word]['color'][color] += 1
-            hyp[word]['shape'][shape] += 1
+            for shape in shapes:
+                hyp[word]['shape'][shape] += 1
+                
             hyp[word]['counter'] += 1
 
-print hyp['cube']
+    if scene >= 110:
+        print hyp['blue']
         
     
     
