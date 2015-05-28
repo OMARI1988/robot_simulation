@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-from data_processing import *
+#from data_processing import *
 import cv2
 from os import listdir
 import matplotlib as mat

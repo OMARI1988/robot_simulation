@@ -360,7 +360,7 @@ class Learn():
                 for c,group in enumerate(G_group):
                     for node in group:
                         p = G.node[node]['position']
-                        rect1 = mat.patches.Rectangle((p[0]-.4,p[1]-3), .8, 4, color=RGB[c],alpha=.4)
+                        rect1 = mat.patches.Rectangle((p[0]-.4,p[1]-3), .8, 4, color=RGB[c],alpha=.5)
                         self.ax[sub,feature].add_patch(rect1)
                     
                 agents = list((n for n in G if G.node[n]['type1']=='G'))

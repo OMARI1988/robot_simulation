@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import random
 from data_processing import *
 dir1 = '/home/omari/Datasets/robot/motion/scene'
+import operator
 
 hyp = {}
-for scene in range(1,120):
+for scene in range(1,1000):
     O,G,S = read(scene)     #Objects, Graph, Sentences
-    
     # initial parameter
     frames = len(O['G']['x'])-1     # we remove the first one to compute speed
     keys = O.keys()
@@ -29,10 +29,6 @@ for scene in range(1,120):
             z = np.abs(O[i]['z'][0]-O[i]['z'][-1])
             if (x+y+z) > 0:
                 o_mov = i
-                
-    c = O[o_mov]['color']
-    color = (c[0],c[1],c[2])
-    shape = O[o_mov]['shape']
     
     colors = []
     shapes = []
@@ -48,9 +44,11 @@ for scene in range(1,120):
     for i in S:
         # unique words
         words = []
+        #S[i] = S[i].replace("  ", " ");
         w = S[i].split(' ')
         for word in w:
-            if word not in words: words.append(word)
+            if word != '':
+                if word not in words: words.append(word)
         #update hypothesis
         for word in words:
             if word not in hyp:
@@ -75,10 +73,31 @@ for scene in range(1,120):
                 
             hyp[word]['counter'] += 1
 
-    if scene > 110:
-    print hyp['blue']
-        
-    
+    #if scene >= 110:
+valid_hyp = {}
+for word in hyp:
+    count = hyp[word]['counter']
+    if count > 50:
+        valid_hyp[word] = {}
+        valid_hyp[word]['color'] = 0
+        valid_hyp[word]['shape'] = 0
+        print word,count
+        A = hyp[word]['color']
+        B = hyp[word]['shape']
+        print 'color'
+        for c in A:
+            if float(A[c])/count > .9:  
+                print c,float(A[c])/count
+                valid_hyp[word]['color'] += 1
+        print 'shape'
+        for s in B:
+            if float(B[s])/count > .9:  
+                print s,float(B[s])/count
+                valid_hyp[word]['shape'] += 1
+        print '-----'    
+print '-------------------------------------'
+print len(valid_hyp)
+
     
     
     
