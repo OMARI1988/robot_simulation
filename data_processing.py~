@@ -8,24 +8,75 @@ class process_data():
         self.dir2 = '/home/omari/Datasets/robot/scenes/'
         self.dir3 = '/home/omari/Datasets/robot/graphs/scene'
         self.hyp = {}
+        self.hyp['action'] = {}
+        self.hyp['color'] = {}
+        self.hyp['shape'] = {}
+        self.hyp['location'] = {}
+        self.hyp['direction'] = {}
+        self.n_word = 3
         #plt.ion()
         
-    def _test_hyp(self):
-        #print self.hyp
+    def _build_phrases(self):
+        self.phrases = {}
+        # read the sentence
         for s in self.S:
+            self.phrases[s] = []
             sentence = self.S[s]
             w = sentence.split(' ')
-            for word in w:
-                print self.hyp[word]
-                
-        print self.colors
-        print self.shapes
-        print self.directions_x
-        print self.directions_y
-        print self.directions_z
-        print self.motions
+            for i in range(len(w)):
+                for j in range(i+1,np.min([i+1+self.n_word,len(w)])):
+                    self.phrases[s].append(' '.join(w[i:j]))
         
-        break
+    
+    def _build_action_hyp(self):
+        # prepare the hypotheses
+        for action in self.motions:
+            if action not in self.hyp['action']:     self.hyp['action'][action] = {}
+        # add new phrases
+        for s in self.phrases:
+            for phrase in self.phrases[s]:
+                for action in self.hyp['action']:
+                    if phrase not in self.hyp['action'][action]:
+                        self.hyp['action'][action][phrase] = 0
+    
+    def _build_moving_obj_hyp(self):
+        # prepare the hypotheses
+        for color in self.colors:
+            if color not in self.hyp['color']:     self.hyp['color'][color] = {}
+        for shape in self.shapes:
+            if shape not in self.hyp['shape']:     self.hyp['shape'][shape] = {}
+        for direction in self.directions:
+            if direction not in self.hyp['direction']:  self.hyp['direction'][direction] = {}
+        for location in self.locations:
+            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
+            
+        # add new phrases
+        for s in self.phrases:
+            for phrase in self.phrases[s]:
+                for color in self.hyp['color']:
+                    if phrase not in self.hyp['color'][color]:
+                        self.hyp['color'][color][phrase] = 0
+                for shape in self.hyp['shape']:
+                    if phrase not in self.hyp['shape'][shape]:
+                        self.hyp['shape'][shape][phrase] = 0
+                for direction in self.hyp['direction']:
+                    if phrase not in self.hyp['direction'][direction]:
+                        self.hyp['direction'][direction][phrase] = 0
+                for location in self.hyp['location']:
+                    if phrase not in self.hyp['location'][location]:
+                        self.hyp['location'][location][phrase] = 0
+            
+                            
+    def _test_action_hyp(self):
+        print self.motions
+        for s in self.phrases:
+            print self.S[s]
+            print self.hyp['action']
+            
+            for i in self.total_motion:
+                print A == self.total_motion[i]
+        
+        
         
     def _read(self,scene):
         self.scene = scene
@@ -106,7 +157,9 @@ class process_data():
         
     def _compute_unique_motion(self):
         self.motions = []
+        self.total_motion = {}
         for i in range(2, len(self.motion)+1):  #possible windows
+            self.total_motion[i] = {}
             for j in range(len(self.motion)+1-i):
                 c = self.motion[j:j+i]
                 if i == 2:  C = (c[0],c[1])
@@ -116,6 +169,8 @@ class process_data():
                 if i == 6:  C = (c[0],c[1],c[2],c[3],c[4],c[5])
                 
                 self.motions.append(C)
+                if C not in self.total_motion[i]:   self.total_motion[i][C] = 1
+                else:                               self.total_motion[i][C] += 1
             
     def _fix_sentences(self):
         for i in self.S:
@@ -311,6 +366,16 @@ class process_data():
                 self.touch_m[counter,:] = A
                 counter += 1
                 
+        counter = 0
+        self.touch_m_i = []                 #which objects were in touch with the moving objects initially
+        self.touch_m_f = []                 #which objects were in touch with the moving objects finally
+        for i in range(len(self.keys)):
+            k2 = self.keys[i]
+            if k2 != k1 and k2 != 'G':                
+                if self.touch_m[counter,0]: self.touch_m_i.append(i)
+                if self.touch_m[counter,-1]: self.touch_m_f.append(i)
+            counter += 1
+            
         # computing direction
         self.dirx_m = np.zeros((n,self.frames),dtype=np.int8)
         self.diry_m = np.zeros((n,self.frames),dtype=np.int8)
@@ -327,13 +392,33 @@ class process_data():
                 self.dirz_m[counter,:] = np.sign(np.round(dz))
                 counter += 1
                 
+        self.directions = []
+        for i in self.touch_m_i:
+            a = self.dirx_m[i,0]
+            b = self.diry_m[i,0]
+            c = self.dirz_m[i,0]
+            d = (a,b,c)
+            self.directions.append(d)
+        for i in self.touch_m_f:
+            a = self.dirx_m[i,-1]
+            b = self.diry_m[i,-1]
+            c = self.dirz_m[i,-1]
+            d = (a,b,c)
+            self.directions.append(d) 
+         
         # finding locations
         self.loc_init = {}
         self.loc_final = {}
         for key in self.keys:
             self.loc_init[key] = [self.Data[key]['x'][0],self.Data[key]['y'][0]]
             self.loc_final[key] = [self.Data[key]['x'][-1],self.Data[key]['y'][-1]]
-
+            
+        self.locations = []
+        di = (self.Data[self.m_obj]['x'][0],self.Data[self.m_obj]['y'][0])
+        df = (self.Data[self.m_obj]['x'][-1],self.Data[self.m_obj]['y'][-1])
+        self.locations.append(di)
+        self.locations.append(df)
+        
     def _plot_graphs(self):
         self.f,self.ax = plt.subplots(len(self.transition['all']),4,figsize=(14,10)) # first col motion , second distance
         self.f.suptitle('Scene : '+str(self.scene), fontsize=20)

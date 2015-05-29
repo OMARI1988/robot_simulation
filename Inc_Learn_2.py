@@ -36,8 +36,11 @@ for scene in range(1,2):
     #print P.directions_z
     #print P.motions
         
-    P._update_words_hyp()
-    P._test_hyp()
+    #P._update_words_hyp()
+    P._build_phrases()
+    P._build_action_hyp()
+    P._build_moving_obj_hyp()
+    P._test_action_hyp()
     
     #if scene >= 110:
 hyp = {}
