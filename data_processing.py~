@@ -71,6 +71,7 @@ class process_data():
         print self.motions
         for s in self.phrases:
             print self.S[s]
+            print self.phrases[s]
             print self.hyp['action']
             
             for i in self.total_motion:

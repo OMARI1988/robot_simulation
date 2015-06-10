@@ -74,8 +74,8 @@ class process_data():
             print self.phrases[s]
             print self.hyp['action']
             
-            for i in self.total_motion:
-                print A == self.total_motion[i]
+            #for i in self.total_motion:
+             #   print A == self.total_motion[i]
         
         
         

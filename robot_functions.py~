@@ -13,6 +13,7 @@ class Robot():
     #-----------------------------------------------------------------------------------------------------#     initial
     def __init__(self):
         self._initilize_values()
+        self.all_sentences_count = 1
         self.draw_scene()
         self.draw_robot()
         self.Data = read_data()
@@ -32,7 +33,7 @@ class Robot():
         self.a0 = 0
         self.a1 = 0
         self.a2 = 0
-        self.step = 20
+        self.step = 10
         self.frame_number = 0
         self.object = {}
         self.object_shape = {}
@@ -50,6 +51,8 @@ class Robot():
         for count,i in enumerate(self.Data['commands'][scene]):
             if i not in self.Data['comments']:
                 print count,'-',self.Data['commands'][scene][i]
+                print self.all_sentences_count
+                self.all_sentences_count += 1
                 self.sentences[count] = ['GOOD',self.Data['commands'][scene][i]]
                 #for word in self.Data['commands'][scene][i].split(' '):
                 #    if word not in self.words:
@@ -451,7 +454,7 @@ class Robot():
         # Create a Bitmap that will later on hold the screenshot image
 	    # Note that the Bitmap must have a size big enough to hold the screenshot
 	    # -1 means using the current default colour depth
-        bmp = wx.EmptyBitmap(self.display.width,self.display.height-50)
+        bmp = wx.EmptyBitmap(self.display.width,self.display.height-60)
 
 	    # Create a memory DC that will be used for actually taking the screenshot
         memDC = wx.MemoryDC()
@@ -465,10 +468,10 @@ class Robot():
         memDC.Blit( 0, # Copy to this X coordinate
         0, # Copy to this Y coordinate
         self.display.width, # Copy this width
-        self.display.height-50, # Copy this height
+        self.display.height-60, # Copy this height
         dcSource, # From where do we copy?
         self.display.x, # What's the X offset in the original DC?
-        self.display.y+50  # What's the Y offset in the original DC?
+        self.display.y+60  # What's the Y offset in the original DC?
         )
 
 	    # Select the Bitmap out of the memory DC by selecting a new
@@ -476,14 +479,13 @@ class Robot():
         memDC.SelectObject(wx.NullBitmap)
 
         img = bmp.ConvertToImage()
-        print img
-        if self.frame_number<10:
-            j = '000'+str(self.frame_number)
-        elif self.frame_number<100:
-            j = '00'+str(self.frame_number)
-        elif self.frame_number<1000:
-            j = '0'+str(self.frame_number)
-        img.SaveFile(self.image_dir+str(self.scene)+'/frame_'+j+'.png', wx.BITMAP_TYPE_PNG)
+        if self.frame_number<10:        j = '000'+str(self.frame_number)
+        elif self.frame_number<100:     j = '00'+str(self.frame_number)
+        elif self.frame_number<1000:    j = '0'+str(self.frame_number)
+        if self.scene<10:      k = '000'+str(self.scene)
+        elif self.scene<100:    k = '00'+str(self.fscene)
+        elif self.scene<1000:   k = '0'+str(self.scene)
+        img.SaveFile(self.image_dir+str(self.scene)+'/scene_'+k+'_frame_'+j+'.png', wx.BITMAP_TYPE_PNG)
         #img.SaveFile(self.image_dir+self.scene+'_'+j+'.png', wx.BITMAP_TYPE_PNG)
         #img1 = cv2.imread(self.image_dir+self.scene+'_'+j+'.png')
         #cv2.imshow('test',img1)
