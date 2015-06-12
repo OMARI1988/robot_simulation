@@ -14,6 +14,7 @@ class process_data():
         self.hyp['location'] = {}
         self.hyp['direction'] = {}
         self.n_word = 3
+        self.all_words = []
         #plt.ion()
         
     def _build_phrases(self):
@@ -177,6 +178,21 @@ class process_data():
         for i in self.S:
             self.S[i] = self.S[i].replace("  ", " ")            
             self.S[i] = self.S[i].replace(".", "")
+            
+    def _more_fix_sentences(self):
+        for i in self.S:
+            self.S[i] = self.S[i].replace("-", " ") 
+            self.S[i] = self.S[i].replace("/", " ") 
+            self.S[i] = self.S[i].replace("!", "")  
+            self.S[i] = self.S[i].replace("(", "")            
+            self.S[i] = self.S[i].replace(")", "")             
+            self.S[i] = self.S[i].replace("?", "")        
+            
+    def _get_all_words(self):
+        for i in self.S:
+            for j in self.S[i].split(' '):
+                if j not in self.all_words:
+                    self.all_words.append(j)
     
     def _update_words_hyp(self):
         for i in self.S:
