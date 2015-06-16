@@ -1,5 +1,6 @@
 import numpy as np
 import networkx as nx
+from itertools import *
 dir1 = '/home/omari/Datasets/robot/motion/scene'
 
 class process_data():
@@ -7,79 +8,29 @@ class process_data():
         self.dir1 = '/home/omari/Datasets/robot/motion/scene'
         self.dir2 = '/home/omari/Datasets/robot/scenes/'
         self.dir3 = '/home/omari/Datasets/robot/graphs/scene'
+        self.hyp_final = {}
+        self.hyp_final['action'] = {}
+        self.hyp_final['color'] = {}
+        self.hyp_final['shape'] = {}
+        self.hyp_final['location'] = {}
+        self.hyp_final['direction'] = {}
+        self.hyp_final['?'] = {}
+        
         self.hyp = {}
         self.hyp['action'] = {}
         self.hyp['color'] = {}
         self.hyp['shape'] = {}
         self.hyp['location'] = {}
         self.hyp['direction'] = {}
-        self.n_word = 3
+        self.hyp['?'] = {}
+        
+        self.hyp_language = {}
+        
+        self.n_word = 1
         self.all_words = []
         #plt.ion()
         
-    def _build_phrases(self):
-        self.phrases = {}
-        # read the sentence
-        for s in self.S:
-            self.phrases[s] = []
-            sentence = self.S[s]
-            w = sentence.split(' ')
-            for i in range(len(w)):
-                for j in range(i+1,np.min([i+1+self.n_word,len(w)])):
-                    self.phrases[s].append(' '.join(w[i:j]))
-        
-    
-    def _build_action_hyp(self):
-        # prepare the hypotheses
-        for action in self.motions:
-            if action not in self.hyp['action']:     self.hyp['action'][action] = {}
-        # add new phrases
-        for s in self.phrases:
-            for phrase in self.phrases[s]:
-                for action in self.hyp['action']:
-                    if phrase not in self.hyp['action'][action]:
-                        self.hyp['action'][action][phrase] = 0
-    
-    def _build_moving_obj_hyp(self):
-        # prepare the hypotheses
-        for color in self.colors:
-            if color not in self.hyp['color']:     self.hyp['color'][color] = {}
-        for shape in self.shapes:
-            if shape not in self.hyp['shape']:     self.hyp['shape'][shape] = {}
-        for direction in self.directions:
-            if direction not in self.hyp['direction']:  self.hyp['direction'][direction] = {}
-        for location in self.locations:
-            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
-            
-        # add new phrases
-        for s in self.phrases:
-            for phrase in self.phrases[s]:
-                for color in self.hyp['color']:
-                    if phrase not in self.hyp['color'][color]:
-                        self.hyp['color'][color][phrase] = 0
-                for shape in self.hyp['shape']:
-                    if phrase not in self.hyp['shape'][shape]:
-                        self.hyp['shape'][shape][phrase] = 0
-                for direction in self.hyp['direction']:
-                    if phrase not in self.hyp['direction'][direction]:
-                        self.hyp['direction'][direction][phrase] = 0
-                for location in self.hyp['location']:
-                    if phrase not in self.hyp['location'][location]:
-                        self.hyp['location'][location][phrase] = 0
-            
-                            
-    def _test_action_hyp(self):
-        print self.motions
-        for s in self.phrases:
-            print self.S[s]
-            print self.phrases[s]
-            print self.hyp['action']
-            
-            #for i in self.total_motion:
-             #   print A == self.total_motion[i]
-        
-        
-        
+    #----------------------------------------------------------------------------------------#
     def _read(self,scene):
         self.scene = scene
         print 'reading scene number:',self.scene
@@ -115,13 +66,183 @@ class process_data():
             self.Data['G'][data[o+1].split(':')[0]] = np.asarray(map(float,data[o+1].split(':')[1].split(',')[:-1]))  #y
             self.Data['G'][data[o+2].split(':')[0]] = np.asarray(map(float,data[o+2].split(':')[1].split(',')[:-1]))  #z
     
+    #----------------------------------------------------------------------------------------#
+    def _fix_sentences(self):
+        for i in self.S:
+            self.S[i] = self.S[i].replace("  ", " ")            
+            self.S[i] = self.S[i].replace(".", "")
+            
+    #----------------------------------------------------------------------------------------#
+    def _more_fix_sentences(self):
+        for i in self.S:
+            self.S[i] = self.S[i].replace("-", " ") 
+            self.S[i] = self.S[i].replace("/", " ") 
+            self.S[i] = self.S[i].replace("!", "")  
+            self.S[i] = self.S[i].replace("(", "")            
+            self.S[i] = self.S[i].replace(")", "")             
+            self.S[i] = self.S[i].replace("?", "")    
+            
+    #----------------------------------------------------------------------------------------#
+    def _print_scentenses(self):
+        for count,i in enumerate(self.S):
+            print count,'-',self.S[i]
+        print '--------------------------'
+        
+    #----------------------------------------------------------------------------------------#
     def _fix_data(self):
         # correction to Data removing 20 and 40
         for i in self.Data:
             self.Data[i]['x'] = np.delete(self.Data[i]['x'],[20,40])
             self.Data[i]['y'] = np.delete(self.Data[i]['y'],[20,40])
             self.Data[i]['z'] = np.delete(self.Data[i]['z'],[20,40])
+        
+    #----------------------------------------------------------------------------------------#
+    def _build_phrases(self):
+        self.phrases = {}                       # hold the entire phrase up to a certain number of words
+        self.words = {}                         # hold the list of independent words in a sentence
+        # read the sentence
+        for s in self.S:
+            self.phrases[s] = []
+            self.words[s] = []
+            sentence = self.S[s]
+            w = sentence.split(' ')
+            for i in range(len(w)):
+                if w[i]not in self.words[s]: self.words[s].append(w[i])
+                for j in range(i+1,np.min([i+1+self.n_word,len(w)+1])):
+                    self.phrases[s].append(' '.join(w[i:j]))
+  
+    #----------------------------------------------------------------------------------------#
+    def _build_vector_hyp(self):
+    
+        self.hyp = {}
+        
+        print 'motion vector'
+        print self.motions
+        print 'colors vector'
+        print self.colors
+        print 'shapes vector'
+        print self.shapes
+        print 'directions vector'
+        print self.directions
+        print 'locations vector'
+        print self.locations
+        #print 'phrases vector'
+        #print self.phrases
+        print 'words vector'
+        print self.words
+        
+        print 'all combinations'
 
+            
+        
+                      
+    #----------------------------------------------------------------------------------------#
+    def _build_hyp1(self):
+    
+        # prepare the hypotheses
+        for action in self.motions:
+            if action not in self.hyp['action']:   self.hyp['action'][action] = {}
+        for color in self.colors:
+            if color not in self.hyp['color']:     self.hyp['color'][color] = {}
+        for shape in self.shapes:
+            if shape not in self.hyp['shape']:     self.hyp['shape'][shape] = {}
+        for direction in self.directions:
+            if direction not in self.hyp['direction']:  self.hyp['direction'][direction] = {}
+        for location in self.locations:
+            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
+        for location in self.locations:
+            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
+        # add new phrases
+        for s in self.words:
+            for phrase in self.words[s]:
+                for action in self.hyp['action']:
+                    if phrase not in self.hyp['action'][action]:
+                        self.hyp['action'][action][phrase] = 0
+                    self.hyp['action'][action][phrase] += 1
+                for color in self.hyp['color']:
+                    if phrase not in self.hyp['color'][color]:
+                        self.hyp['color'][color][phrase] = 0
+                    self.hyp['color'][color][phrase] += 1
+                for shape in self.hyp['shape']:
+                    if phrase not in self.hyp['shape'][shape]:
+                        self.hyp['shape'][shape][phrase] = 0
+                    self.hyp['shape'][shape][phrase] += 1
+                for direction in self.hyp['direction']:
+                    if phrase not in self.hyp['direction'][direction]:
+                        self.hyp['direction'][direction][phrase] = 0
+                    self.hyp['direction'][direction][phrase] += 1
+                for location in self.hyp['location']:
+                    if phrase not in self.hyp['location'][location]:
+                        self.hyp['location'][location][phrase] = 0
+                    self.hyp['location'][location][phrase] += 1
+                if phrase not in self.hyp['?']:
+                    self.hyp['?'][phrase] = 0
+                    
+    #----------------------------------------------------------------------------------------#
+    def _build_hyp2(self):
+    
+        for s in self.words:
+            for word in self.words[s]:
+                if word not in self.hyp_language:
+                    self.hyp_language[word] = {}
+                    self.hyp_language[word]['count'] = 0
+                    self.hyp_language[word]['action'] = {}
+                    self.hyp_language[word]['color'] = {}
+                    self.hyp_language[word]['shape'] = {}
+                    self.hyp_language[word]['direction'] = {}
+                    self.hyp_language[word]['location'] = {}
+                self.hyp_language[word]['count'] += 1
+                
+
+                for action in self.motions:
+                    if action not in self.hyp_language[word]['action']:   self.hyp_language[word]['action'][action] = 1
+                    else: self.hyp_language[word]['action'][action] += 1
+                for color in self.colors:
+                    if color not in self.hyp_language[word]['color']:   self.hyp_language[word]['color'][color] = 1
+                    else: self.hyp_language[word]['color'][color] += 1
+                for shape in self.shapes:
+                    if shape not in self.hyp_language[word]['shape']:   self.hyp_language[word]['shape'][shape] = 1
+                    else: self.hyp_language[word]['shape'][shape] += 1
+                for direction in self.directions:
+                    if direction not in self.hyp_language[word]['direction']:   self.hyp_language[word]['direction'][direction] = 1
+                    else: self.hyp_language[word]['direction'][direction] += 1
+                for location in self.locations:
+                    if location not in self.hyp_language[word]['location']:   self.hyp_language[word]['location'][location] = 1
+                    else: self.hyp_language[word]['location'][location] += 1
+                
+              
+    #----------------------------------------------------------------------------------------#              
+    def _test_action_hyp(self):
+        """
+        for s in self.S:
+            print self.S[s]
+            print '==----------------------------------=='
+            print self.words[s]
+            print '==----------------------------------=='
+        for i in self.hyp:
+            print i
+            if i != '?':
+                for j in self.hyp[i]:
+                    print j
+                    print self.hyp[i][j]
+                    print '****'
+            else:
+                print self.hyp[i]
+            print '==----------------------------------=='
+        """    
+        for word in self.hyp_language:
+            print word
+            for j in self.hyp_language[word]:
+                print j
+                print self.hyp_language[word][j]
+                print '-----------'
+            print '==----------------------------------=='
+            
+            #for i in self.total_motion:
+             #   print A == self.total_motion[i]
+  
+
+    #----------------------------------------------------------------------------------------#
     def _compute_unique_color_shape(self):
         self.colors = []
         self.shapes = []
@@ -133,6 +254,7 @@ class process_data():
                 if C not in self.colors: self.colors.append(C)
                 if s not in self.shapes: self.shapes.append(s)
                 
+    #----------------------------------------------------------------------------------------#
     def _compute_unique_dist_dir(self):
         self.distances = []
         self.directions_x = []
@@ -145,6 +267,7 @@ class process_data():
         self.directions_z = self._unique_dir(self.dirz_all_i,self.directions_z)
         self.directions_z = self._unique_dir(self.dirz_all_f,self.directions_z)
         
+    #----------------------------------------------------------------------------------------#
     def _unique_dir(self,dir1,dir_all):
         for i in dir1:
             if 0 not in dir_all:
@@ -157,6 +280,7 @@ class process_data():
                 break
         return dir_all
         
+    #----------------------------------------------------------------------------------------#
     def _compute_unique_motion(self):
         self.motions = []
         self.total_motion = {}
@@ -174,26 +298,16 @@ class process_data():
                 if C not in self.total_motion[i]:   self.total_motion[i][C] = 1
                 else:                               self.total_motion[i][C] += 1
             
-    def _fix_sentences(self):
-        for i in self.S:
-            self.S[i] = self.S[i].replace("  ", " ")            
-            self.S[i] = self.S[i].replace(".", "")
+    
             
-    def _more_fix_sentences(self):
-        for i in self.S:
-            self.S[i] = self.S[i].replace("-", " ") 
-            self.S[i] = self.S[i].replace("/", " ") 
-            self.S[i] = self.S[i].replace("!", "")  
-            self.S[i] = self.S[i].replace("(", "")            
-            self.S[i] = self.S[i].replace(")", "")             
-            self.S[i] = self.S[i].replace("?", "")        
-            
+    #----------------------------------------------------------------------------------------#
     def _get_all_words(self):
         for i in self.S:
             for j in self.S[i].split(' '):
                 if j not in self.all_words:
                     self.all_words.append(j)
     
+    #----------------------------------------------------------------------------------------#
     def _update_words_hyp(self):
         for i in self.S:
             # unique words
@@ -230,11 +344,13 @@ class process_data():
                 for m in self.directions_z:      self.hyp[word]['dir_z'][m] += 1
                 self.hyp[word]['counter'] += 1
             
+    #----------------------------------------------------------------------------------------#
     def _new_feature(self,feature,word,feature_n):
         for f in feature:
             if f not in self.hyp[word][feature_n]:
                 self.hyp[word][feature_n][f] = 0
-                
+       
+    #----------------------------------------------------------------------------------------#         
     def _compute_features_for_all(self):             
         # initial parameter
         self.frames = len(self.Data['G']['x'])-1     # we remove the first one to compute speed
@@ -306,6 +422,7 @@ class process_data():
                 self.motion_all[counter,:] = A
                 counter += 1
                 
+    #----------------------------------------------------------------------------------------#
     def _transition(self):
         # comput the transition intervals for motion
         self.motion = [self.Data[self.m_obj]['motion'][0]]
@@ -329,10 +446,12 @@ class process_data():
                 if i not in self.transition['all']: self.transition['all'].append(i)
         self.transition['all'] = sorted(self.transition['all'])
     
+    #----------------------------------------------------------------------------------------#
     def _grouping(self):
         self.G_motion = self._grouping_template(self.transition['motion'],self.motion_all)
         self.G_touch = self._grouping_template(self.transition['touch'],self.touch_all)
             
+    #----------------------------------------------------------------------------------------#
     def _grouping_template(self,transition,feature):
         G_all = {}
         for T in transition:
@@ -353,6 +472,7 @@ class process_data():
                 G_all[T]['groups'].append(g.nodes())
         return G_all
         
+    #----------------------------------------------------------------------------------------#
     def _compute_features_for_moving_object(self):
         # finding the moving object ! fix this
         self.m_obj = []
@@ -388,10 +508,10 @@ class process_data():
         self.touch_m_f = []                 #which objects were in touch with the moving objects finally
         for i in range(len(self.keys)):
             k2 = self.keys[i]
-            if k2 != k1 and k2 != 'G':                
+            if k2 != k1 and k2 != 'G':  
                 if self.touch_m[counter,0]: self.touch_m_i.append(i)
                 if self.touch_m[counter,-1]: self.touch_m_f.append(i)
-            counter += 1
+                counter += 1
             
         # computing direction
         self.dirx_m = np.zeros((n,self.frames),dtype=np.int8)
@@ -408,18 +528,22 @@ class process_data():
                 self.diry_m[counter,:] = np.sign((dy).astype(int))
                 self.dirz_m[counter,:] = np.sign(np.round(dz))
                 counter += 1
-                
+             
         self.directions = []
         for i in self.touch_m_i:
-            a = self.dirx_m[i,0]
-            b = self.diry_m[i,0]
-            c = self.dirz_m[i,0]
+            if i > int(k1): val = i-1
+            else:           val = i
+            a = self.dirx_m[val,0]
+            b = self.diry_m[val,0]
+            c = self.dirz_m[val,0]
             d = (a,b,c)
             self.directions.append(d)
         for i in self.touch_m_f:
-            a = self.dirx_m[i,-1]
-            b = self.diry_m[i,-1]
-            c = self.dirz_m[i,-1]
+            if i > int(k1): val = i-1
+            else:           val = i
+            a = self.dirx_m[val,-1]
+            b = self.diry_m[val,-1]
+            c = self.dirz_m[val,-1]
             d = (a,b,c)
             self.directions.append(d) 
          
@@ -628,10 +752,4 @@ class process_data():
             cv2.waitKey(50) & 0xff
         plt.close(self.f)
         
-    def _print_scentenses(self):
-        for count,i in enumerate(self.S):
-            print count,'-',self.S[i]
-        #print self.words
-        #print len(self.words)
-        print '--------------------------'
         
