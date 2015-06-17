@@ -255,8 +255,23 @@ class process_data():
                 if s not in self.shapes: self.shapes.append(s)
                 
     #----------------------------------------------------------------------------------------#
-    def _compute_unique_dist_dir(self):
-        self.distances = []
+    def _compute_unique_dir_all(self):
+        #self.distances = []
+        
+        self.directions_x = []
+        self.directions_x = self._unique_dir(self.dirx_all_i,self.directions_x)
+        self.directions_x = self._unique_dir(self.dirx_all_f,self.directions_x)
+        self.directions_y = []
+        self.directions_y = self._unique_dir(self.diry_all_i,self.directions_y)
+        self.directions_y = self._unique_dir(self.diry_all_f,self.directions_y)
+        self.directions_z = []
+        self.directions_z = self._unique_dir(self.dirz_all_i,self.directions_z)
+        self.directions_z = self._unique_dir(self.dirz_all_f,self.directions_z)
+        
+    #----------------------------------------------------------------------------------------#
+    def _compute_unique_dir_moving(self):
+        #self.distances = []
+        
         self.directions_x = []
         self.directions_x = self._unique_dir(self.dirx_all_i,self.directions_x)
         self.directions_x = self._unique_dir(self.dirx_all_f,self.directions_x)
@@ -285,7 +300,7 @@ class process_data():
         self.motions = []
         self.total_motion = {}
         for i in range(2, len(self.motion)+1):  #possible windows
-            self.total_motion[i] = {}
+            self.total_motion[i-1] = {}
             for j in range(len(self.motion)+1-i):
                 c = self.motion[j:j+i]
                 if i == 2:  C = (c[0],c[1])
@@ -295,9 +310,8 @@ class process_data():
                 if i == 6:  C = (c[0],c[1],c[2],c[3],c[4],c[5])
                 
                 self.motions.append(C)
-                if C not in self.total_motion[i]:   self.total_motion[i][C] = 1
-                else:                               self.total_motion[i][C] += 1
-            
+                if C not in self.total_motion[i-1]:   self.total_motion[i-1][C] = 1
+                else:                               self.total_motion[i-1][C] += 1
     
             
     #----------------------------------------------------------------------------------------#
@@ -356,7 +370,7 @@ class process_data():
         self.frames = len(self.Data['G']['x'])-1     # we remove the first one to compute speed
         self.keys = self.Data.keys()
         self.n = np.sum(range(len(self.keys)))  
-        # computing distance and touch   (between all objects)
+        # computing distance and touch   (between all objects including robot)
         self.dis_all = np.zeros((self.n,self.frames),dtype=np.float)           
         self.touch_all = np.zeros((self.n,self.frames),dtype=np.int8) 
         counter = 0 
@@ -374,7 +388,7 @@ class process_data():
                 self.touch_all[counter,:] = A
                 counter += 1
                 
-        # computing direction   (between all objects)
+        # computing direction   (between all objects not robot)
         self.dirx_all_i = np.zeros((len(self.keys)-1,len(self.keys)-1),dtype=np.int8)
         self.dirx_all_f = np.zeros((len(self.keys)-1,len(self.keys)-1),dtype=np.int8)
         self.diry_all_i = np.zeros((len(self.keys)-1,len(self.keys)-1),dtype=np.int8)
@@ -399,7 +413,7 @@ class process_data():
                     self.dirz_all_i[i,j] = np.sign(dzi)
                     self.dirz_all_f[i,j] = np.sign(dzf)
                     
-        # computing motion      (between all objects)
+        # computing motion      (for all objects)
         for i in self.Data:
             dx = (self.Data[i]['x'][:-1]-self.Data[i]['x'][1:])**2
             dy = (self.Data[i]['y'][:-1]-self.Data[i]['y'][1:])**2
@@ -418,7 +432,7 @@ class process_data():
                 A = np.abs(self.Data[k1]['motion'] - self.Data[k2]['motion'])
                 A[A==0] = 2
                 A[A!=2] = 0
-                A[A!=0] = 1
+                A[A!=0] = 1     # a little trick to make 0=1 and 1=0
                 self.motion_all[counter,:] = A
                 counter += 1
                 
@@ -484,7 +498,7 @@ class process_data():
                 if (x+y+z) > 0:
                     self.m_obj = i
                     
-        # computing distance BINARY Distance (touch or no touch)
+        # computing distance BINARY Distance (touch or no touch all obj no robot)
         n = len(self.Data)-2
         self.dis_m = np.zeros((n,self.frames),dtype=np.float)
         self.touch_m = np.zeros((n,self.frames),dtype=np.uint8)
@@ -537,7 +551,7 @@ class process_data():
             b = self.diry_m[val,0]
             c = self.dirz_m[val,0]
             d = (a,b,c)
-            self.directions.append(d)
+            if d not in self.directions:    self.directions.append(d)
         for i in self.touch_m_f:
             if i > int(k1): val = i-1
             else:           val = i
@@ -545,21 +559,22 @@ class process_data():
             b = self.diry_m[val,-1]
             c = self.dirz_m[val,-1]
             d = (a,b,c)
-            self.directions.append(d) 
+            if d not in self.directions:    self.directions.append(d)
          
         # finding locations
-        self.loc_init = {}
-        self.loc_final = {}
-        for key in self.keys:
-            self.loc_init[key] = [self.Data[key]['x'][0],self.Data[key]['y'][0]]
-            self.loc_final[key] = [self.Data[key]['x'][-1],self.Data[key]['y'][-1]]
+        #self.loc_init = {}
+        #self.loc_final = {}
+        #for key in self.keys:
+        #    self.loc_init[key] = [self.Data[key]['x'][0],self.Data[key]['y'][0]]
+        #    self.loc_final[key] = [self.Data[key]['x'][-1],self.Data[key]['y'][-1]]
             
         self.locations = []
         di = (self.Data[self.m_obj]['x'][0],self.Data[self.m_obj]['y'][0])
         df = (self.Data[self.m_obj]['x'][-1],self.Data[self.m_obj]['y'][-1])
         self.locations.append(di)
-        self.locations.append(df)
+        if df not in self.locations: self.locations.append(df)
         
+    #----------------------------------------------------------------------------------------#
     def _plot_graphs(self):
         self.f,self.ax = plt.subplots(len(self.transition['all']),4,figsize=(14,10)) # first col motion , second distance
         self.f.suptitle('Scene : '+str(self.scene), fontsize=20)
