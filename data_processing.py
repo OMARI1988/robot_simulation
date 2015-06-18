@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from itertools import *
+import itertools
 dir1 = '/home/omari/Datasets/robot/motion/scene'
 
 class process_data():
@@ -30,7 +30,7 @@ class process_data():
         self.all_words = []
         #plt.ion()
         
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
     def _read(self,scene):
         self.scene = scene
         print 'reading scene number:',self.scene
@@ -66,13 +66,13 @@ class process_data():
             self.Data['G'][data[o+1].split(':')[0]] = np.asarray(map(float,data[o+1].split(':')[1].split(',')[:-1]))  #y
             self.Data['G'][data[o+2].split(':')[0]] = np.asarray(map(float,data[o+2].split(':')[1].split(',')[:-1]))  #z
     
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
     def _fix_sentences(self):
         for i in self.S:
             self.S[i] = self.S[i].replace("  ", " ")            
             self.S[i] = self.S[i].replace(".", "")
             
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
     def _more_fix_sentences(self):
         for i in self.S:
             self.S[i] = self.S[i].replace("-", " ") 
@@ -82,13 +82,13 @@ class process_data():
             self.S[i] = self.S[i].replace(")", "")             
             self.S[i] = self.S[i].replace("?", "")    
             
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
     def _print_scentenses(self):
         for count,i in enumerate(self.S):
             print count,'-',self.S[i]
         print '--------------------------'
         
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
     def _fix_data(self):
         # correction to Data removing 20 and 40
         for i in self.Data:
@@ -96,8 +96,8 @@ class process_data():
             self.Data[i]['y'] = np.delete(self.Data[i]['y'],[20,40])
             self.Data[i]['z'] = np.delete(self.Data[i]['z'],[20,40])
         
-    #----------------------------------------------------------------------------------------#
-    def _build_phrases(self):
+    #--------------------------------------------------------------------------------------------------------#
+    def _find_unique_words(self):
         self.phrases = {}                       # hold the entire phrase up to a certain number of words
         self.words = {}                         # hold the list of independent words in a sentence
         # read the sentence
@@ -111,267 +111,18 @@ class process_data():
                 for j in range(i+1,np.min([i+1+self.n_word,len(w)+1])):
                     self.phrases[s].append(' '.join(w[i:j]))
   
-    #----------------------------------------------------------------------------------------#
-    def _build_vector_hyp(self):
-    
-        self.hyp = {}
+    #--------------------------------------------------------------------------------------------------------#        
+    def _compute_features_for_all(self): 
+        # this function comutes the following  
+        # self.touch_all
+        # self.motion_all          
         
-        print 'motion vector'
-        print self.motions
-        print 'colors vector'
-        print self.colors
-        print 'shapes vector'
-        print self.shapes
-        print 'directions vector'
-        print self.directions
-        print 'locations vector'
-        print self.locations
-        #print 'phrases vector'
-        #print self.phrases
-        print 'words vector'
-        print self.words
-        
-        print 'all combinations'
-
-            
-        
-                      
-    #----------------------------------------------------------------------------------------#
-    def _build_hyp1(self):
-    
-        # prepare the hypotheses
-        for action in self.motions:
-            if action not in self.hyp['action']:   self.hyp['action'][action] = {}
-        for color in self.colors:
-            if color not in self.hyp['color']:     self.hyp['color'][color] = {}
-        for shape in self.shapes:
-            if shape not in self.hyp['shape']:     self.hyp['shape'][shape] = {}
-        for direction in self.directions:
-            if direction not in self.hyp['direction']:  self.hyp['direction'][direction] = {}
-        for location in self.locations:
-            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
-        for location in self.locations:
-            if location not in self.hyp['location']:    self.hyp['location'][location] = {}
-        # add new phrases
-        for s in self.words:
-            for phrase in self.words[s]:
-                for action in self.hyp['action']:
-                    if phrase not in self.hyp['action'][action]:
-                        self.hyp['action'][action][phrase] = 0
-                    self.hyp['action'][action][phrase] += 1
-                for color in self.hyp['color']:
-                    if phrase not in self.hyp['color'][color]:
-                        self.hyp['color'][color][phrase] = 0
-                    self.hyp['color'][color][phrase] += 1
-                for shape in self.hyp['shape']:
-                    if phrase not in self.hyp['shape'][shape]:
-                        self.hyp['shape'][shape][phrase] = 0
-                    self.hyp['shape'][shape][phrase] += 1
-                for direction in self.hyp['direction']:
-                    if phrase not in self.hyp['direction'][direction]:
-                        self.hyp['direction'][direction][phrase] = 0
-                    self.hyp['direction'][direction][phrase] += 1
-                for location in self.hyp['location']:
-                    if phrase not in self.hyp['location'][location]:
-                        self.hyp['location'][location][phrase] = 0
-                    self.hyp['location'][location][phrase] += 1
-                if phrase not in self.hyp['?']:
-                    self.hyp['?'][phrase] = 0
-                    
-    #----------------------------------------------------------------------------------------#
-    def _build_hyp2(self):
-    
-        for s in self.words:
-            for word in self.words[s]:
-                if word not in self.hyp_language:
-                    self.hyp_language[word] = {}
-                    self.hyp_language[word]['count'] = 0
-                    self.hyp_language[word]['action'] = {}
-                    self.hyp_language[word]['color'] = {}
-                    self.hyp_language[word]['shape'] = {}
-                    self.hyp_language[word]['direction'] = {}
-                    self.hyp_language[word]['location'] = {}
-                self.hyp_language[word]['count'] += 1
-                
-
-                for action in self.motions:
-                    if action not in self.hyp_language[word]['action']:   self.hyp_language[word]['action'][action] = 1
-                    else: self.hyp_language[word]['action'][action] += 1
-                for color in self.colors:
-                    if color not in self.hyp_language[word]['color']:   self.hyp_language[word]['color'][color] = 1
-                    else: self.hyp_language[word]['color'][color] += 1
-                for shape in self.shapes:
-                    if shape not in self.hyp_language[word]['shape']:   self.hyp_language[word]['shape'][shape] = 1
-                    else: self.hyp_language[word]['shape'][shape] += 1
-                for direction in self.directions:
-                    if direction not in self.hyp_language[word]['direction']:   self.hyp_language[word]['direction'][direction] = 1
-                    else: self.hyp_language[word]['direction'][direction] += 1
-                for location in self.locations:
-                    if location not in self.hyp_language[word]['location']:   self.hyp_language[word]['location'][location] = 1
-                    else: self.hyp_language[word]['location'][location] += 1
-                
-              
-    #----------------------------------------------------------------------------------------#              
-    def _test_action_hyp(self):
-        """
-        for s in self.S:
-            print self.S[s]
-            print '==----------------------------------=='
-            print self.words[s]
-            print '==----------------------------------=='
-        for i in self.hyp:
-            print i
-            if i != '?':
-                for j in self.hyp[i]:
-                    print j
-                    print self.hyp[i][j]
-                    print '****'
-            else:
-                print self.hyp[i]
-            print '==----------------------------------=='
-        """    
-        for word in self.hyp_language:
-            print word
-            for j in self.hyp_language[word]:
-                print j
-                print self.hyp_language[word][j]
-                print '-----------'
-            print '==----------------------------------=='
-            
-            #for i in self.total_motion:
-             #   print A == self.total_motion[i]
-  
-
-    #----------------------------------------------------------------------------------------#
-    def _compute_unique_color_shape(self):
-        self.colors = []
-        self.shapes = []
-        for i in self.Data:
-            if i != 'G':
-                c = self.Data[i]['color']
-                C = (c[0],c[1],c[2])
-                s = self.Data[i]['shape']
-                if C not in self.colors: self.colors.append(C)
-                if s not in self.shapes: self.shapes.append(s)
-                
-    #----------------------------------------------------------------------------------------#
-    def _compute_unique_dir_all(self):
-        #self.distances = []
-        
-        self.directions_x = []
-        self.directions_x = self._unique_dir(self.dirx_all_i,self.directions_x)
-        self.directions_x = self._unique_dir(self.dirx_all_f,self.directions_x)
-        self.directions_y = []
-        self.directions_y = self._unique_dir(self.diry_all_i,self.directions_y)
-        self.directions_y = self._unique_dir(self.diry_all_f,self.directions_y)
-        self.directions_z = []
-        self.directions_z = self._unique_dir(self.dirz_all_i,self.directions_z)
-        self.directions_z = self._unique_dir(self.dirz_all_f,self.directions_z)
-        
-    #----------------------------------------------------------------------------------------#
-    def _compute_unique_dir_moving(self):
-        #self.distances = []
-        
-        self.directions_x = []
-        self.directions_x = self._unique_dir(self.dirx_all_i,self.directions_x)
-        self.directions_x = self._unique_dir(self.dirx_all_f,self.directions_x)
-        self.directions_y = []
-        self.directions_y = self._unique_dir(self.diry_all_i,self.directions_y)
-        self.directions_y = self._unique_dir(self.diry_all_f,self.directions_y)
-        self.directions_z = []
-        self.directions_z = self._unique_dir(self.dirz_all_i,self.directions_z)
-        self.directions_z = self._unique_dir(self.dirz_all_f,self.directions_z)
-        
-    #----------------------------------------------------------------------------------------#
-    def _unique_dir(self,dir1,dir_all):
-        for i in dir1:
-            if 0 not in dir_all:
-                if 0 in i: dir_all.append(0)
-            if 1 not in dir_all:
-                if 1 in i: dir_all.append(1)
-            if -1 not in dir_all:
-                if -1 in i: dir_all.append(-1)
-            if len(dir_all) == 3:
-                break
-        return dir_all
-        
-    #----------------------------------------------------------------------------------------#
-    def _compute_unique_motion(self):
-        self.motions = []
-        self.total_motion = {}
-        for i in range(2, len(self.motion)+1):  #possible windows
-            self.total_motion[i-1] = {}
-            for j in range(len(self.motion)+1-i):
-                c = self.motion[j:j+i]
-                if i == 2:  C = (c[0],c[1])
-                if i == 3:  C = (c[0],c[1],c[2])
-                if i == 4:  C = (c[0],c[1],c[2],c[3])
-                if i == 5:  C = (c[0],c[1],c[2],c[3],c[4])
-                if i == 6:  C = (c[0],c[1],c[2],c[3],c[4],c[5])
-                
-                self.motions.append(C)
-                if C not in self.total_motion[i-1]:   self.total_motion[i-1][C] = 1
-                else:                               self.total_motion[i-1][C] += 1
-    
-            
-    #----------------------------------------------------------------------------------------#
-    def _get_all_words(self):
-        for i in self.S:
-            for j in self.S[i].split(' '):
-                if j not in self.all_words:
-                    self.all_words.append(j)
-    
-    #----------------------------------------------------------------------------------------#
-    def _update_words_hyp(self):
-        for i in self.S:
-            # unique words
-            words = []
-            w = self.S[i].split(' ')
-            for word in w:
-                if word != '':
-                    if word not in words: words.append(word)
-            #update hypothesis
-            for word in words:
-                if word not in self.hyp:
-                    self.hyp[word] = {}
-                    self.hyp[word]['shape'] = {}
-                    self.hyp[word]['color'] = {}
-                    self.hyp[word]['color'] = {}
-                    self.hyp[word]['dir_x'] = {}
-                    self.hyp[word]['dir_y'] = {}
-                    self.hyp[word]['dir_z'] = {}
-                    self.hyp[word]['motion'] = {}
-                    self.hyp[word]['counter'] = 0
-    
-                self._new_feature(self.shapes,word,'shape')
-                self._new_feature(self.colors,word,'color')
-                self._new_feature(self.directions_x,word,'dir_x')
-                self._new_feature(self.directions_y,word,'dir_y')
-                self._new_feature(self.directions_z,word,'dir_z')
-                self._new_feature(self.motions,word,'motion')
-                
-                for color in self.colors:   self.hyp[word]['color'][color] += 1
-                for shape in self.shapes:   self.hyp[word]['shape'][shape] += 1
-                for m in self.motions:      self.hyp[word]['motion'][m] += 1
-                for m in self.directions_x:      self.hyp[word]['dir_x'][m] += 1
-                for m in self.directions_y:      self.hyp[word]['dir_y'][m] += 1
-                for m in self.directions_z:      self.hyp[word]['dir_z'][m] += 1
-                self.hyp[word]['counter'] += 1
-            
-    #----------------------------------------------------------------------------------------#
-    def _new_feature(self,feature,word,feature_n):
-        for f in feature:
-            if f not in self.hyp[word][feature_n]:
-                self.hyp[word][feature_n][f] = 0
-       
-    #----------------------------------------------------------------------------------------#         
-    def _compute_features_for_all(self):             
         # initial parameter
         self.frames = len(self.Data['G']['x'])-1     # we remove the first one to compute speed
         self.keys = self.Data.keys()
         self.n = np.sum(range(len(self.keys)))  
         # computing distance and touch   (between all objects including robot)
-        self.dis_all = np.zeros((self.n,self.frames),dtype=np.float)           
+        #self.dis_all = np.zeros((self.n,self.frames),dtype=np.float)           
         self.touch_all = np.zeros((self.n,self.frames),dtype=np.int8) 
         counter = 0 
         for i in range(len(self.keys)-1):
@@ -382,12 +133,13 @@ class process_data():
                 dy = np.abs(self.Data[k1]['y'][1:]-self.Data[k2]['y'][1:])
                 dz = np.abs(self.Data[k1]['z'][1:]-self.Data[k2]['z'][1:])
                 A = dx+dy+dz
-                self.dis_all[counter,:] = A
+                #self.dis_all[counter,:] = A
                 A[A<=1.0] = 1
                 A[A>1.0] = 0
                 self.touch_all[counter,:] = A
                 counter += 1
                 
+        """
         # computing direction   (between all objects not robot)
         self.dirx_all_i = np.zeros((len(self.keys)-1,len(self.keys)-1),dtype=np.int8)
         self.dirx_all_f = np.zeros((len(self.keys)-1,len(self.keys)-1),dtype=np.int8)
@@ -412,6 +164,7 @@ class process_data():
                     self.diry_all_f[i,j] = np.sign(dyf)
                     self.dirz_all_i[i,j] = np.sign(dzi)
                     self.dirz_all_f[i,j] = np.sign(dzf)
+        """
                     
         # computing motion      (for all objects)
         for i in self.Data:
@@ -435,60 +188,16 @@ class process_data():
                 A[A!=0] = 1     # a little trick to make 0=1 and 1=0
                 self.motion_all[counter,:] = A
                 counter += 1
-                
-    #----------------------------------------------------------------------------------------#
-    def _transition(self):
-        # comput the transition intervals for motion
-        self.motion = [self.Data[self.m_obj]['motion'][0]]
-        col = self.motion_all[:,0]
-        self.transition = {}
-        self.transition['motion'] = [0]
-        self.transition['all'] = [0]
-        for i in range(1,self.frames):
-            if np.sum(np.abs(col-self.motion_all[:,i]))!=0:
-                col = self.motion_all[:,i]
-                self.transition['motion'].append(i)
-                self.transition['all'].append(i)
-                self.motion.append(self.Data[self.m_obj]['motion'][i])
-        # comput the transition intervals for touch
-        self.transition['touch'] = [0]
-        col = self.touch_all[:,0]
-        for i in range(1,self.frames):
-            if np.sum(np.abs(col-self.touch_all[:,i]))!=0:
-                col = self.touch_all[:,i]
-                self.transition['touch'].append(i)
-                if i not in self.transition['all']: self.transition['all'].append(i)
-        self.transition['all'] = sorted(self.transition['all'])
-    
-    #----------------------------------------------------------------------------------------#
-    def _grouping(self):
-        self.G_motion = self._grouping_template(self.transition['motion'],self.motion_all)
-        self.G_touch = self._grouping_template(self.transition['touch'],self.touch_all)
-            
-    #----------------------------------------------------------------------------------------#
-    def _grouping_template(self,transition,feature):
-        G_all = {}
-        for T in transition:
-            G = self.G.copy()
-            counter = 0
-            for i in range(len(self.keys)-1):
-                for j in range(i+1,len(self.keys)):
-                    k1 = self.keys[i]
-                    k2 = self.keys[j]
-                    a = feature[counter,T]
-                    counter += 1
-                    if a == 1:    G.add_edge(str(k1),str(k2),value=1)
-            G_all[T] = {}
-            G_all[T]['graph'] = G
-            G_all[T]['groups'] = []
-            C=nx.connected_component_subgraphs(G)
-            for g in C:
-                G_all[T]['groups'].append(g.nodes())
-        return G_all
-        
-    #----------------------------------------------------------------------------------------#
+
+                    
+    #--------------------------------------------------------------------------------------------------------#
     def _compute_features_for_moving_object(self):
         # finding the moving object ! fix this
+        # self.m_obj
+        # self.touch_m
+        # self.touch_m_i        # initially touching the moving obj
+        # self.touch_m_f        # finally touching the moving obj
+        
         self.m_obj = []
         for i in self.Data:
             if i != 'G':
@@ -500,7 +209,7 @@ class process_data():
                     
         # computing distance BINARY Distance (touch or no touch all obj no robot)
         n = len(self.Data)-2
-        self.dis_m = np.zeros((n,self.frames),dtype=np.float)
+        #self.dis_m = np.zeros((n,self.frames),dtype=np.float)
         self.touch_m = np.zeros((n,self.frames),dtype=np.uint8)
         counter = 0
         k1 = self.m_obj
@@ -511,7 +220,7 @@ class process_data():
                 dy = np.abs(self.Data[k1]['y'][1:]-self.Data[k2]['y'][1:])
                 dz = np.abs(self.Data[k1]['z'][1:]-self.Data[k2]['z'][1:])
                 A = dx+dy+dz
-                self.dis_m[counter,:] = A
+                #self.dis_m[counter,:] = A
                 A[A<=1] = 1
                 A[A>1] = 0
                 self.touch_m[counter,:] = A
@@ -543,7 +252,8 @@ class process_data():
                 self.dirz_m[counter,:] = np.sign(np.round(dz))
                 counter += 1
              
-        self.directions = []
+        self.dir_touch_m_i = []
+        self.dir_touch_m_f = []
         for i in self.touch_m_i:
             if i > int(k1): val = i-1
             else:           val = i
@@ -551,7 +261,7 @@ class process_data():
             b = self.diry_m[val,0]
             c = self.dirz_m[val,0]
             d = (a,b,c)
-            if d not in self.directions:    self.directions.append(d)
+            if d not in self.dir_touch_m_i:    self.dir_touch_m_i.append(d)
         for i in self.touch_m_f:
             if i > int(k1): val = i-1
             else:           val = i
@@ -559,22 +269,184 @@ class process_data():
             b = self.diry_m[val,-1]
             c = self.dirz_m[val,-1]
             d = (a,b,c)
-            if d not in self.directions:    self.directions.append(d)
+            if d not in self.dir_touch_m_f:    self.dir_touch_m_f.append(d)
          
-        # finding locations
-        #self.loc_init = {}
-        #self.loc_final = {}
-        #for key in self.keys:
-        #    self.loc_init[key] = [self.Data[key]['x'][0],self.Data[key]['y'][0]]
-        #    self.loc_final[key] = [self.Data[key]['x'][-1],self.Data[key]['y'][-1]]
-            
-        self.locations = []
-        di = (self.Data[self.m_obj]['x'][0],self.Data[self.m_obj]['y'][0])
-        df = (self.Data[self.m_obj]['x'][-1],self.Data[self.m_obj]['y'][-1])
-        self.locations.append(di)
-        if df not in self.locations: self.locations.append(df)
+        # finding locations of moving object
+        self.locations_m_i = []
+        self.locations_m_f = []
+        self.locations_m_i.append((self.Data[self.m_obj]['x'][0],self.Data[self.m_obj]['y'][0]))
+        self.locations_m_f.append((self.Data[self.m_obj]['x'][-1],self.Data[self.m_obj]['y'][-1]))
+        #self.locations.append(di)
+        #if df not in self.locations: self.locations.append(df)
         
-    #----------------------------------------------------------------------------------------#
+    #--------------------------------------------------------------------------------------------------------#
+    def _transition(self):
+        # comput the transition intervals for motion
+        self.motion = [self.Data[self.m_obj]['motion'][0]]
+        col = self.motion_all[:,0]
+        self.transition = {}
+        self.transition['motion'] = [0]
+        self.transition['all'] = [0]
+        for i in range(1,self.frames):
+            if np.sum(np.abs(col-self.motion_all[:,i]))!=0:
+                col = self.motion_all[:,i]
+                self.transition['motion'].append(i)
+                self.transition['all'].append(i)
+                self.motion.append(self.Data[self.m_obj]['motion'][i])
+        # comput the transition intervals for touch
+        self.transition['touch'] = [0]
+        col = self.touch_all[:,0]
+        for i in range(1,self.frames):
+            if np.sum(np.abs(col-self.touch_all[:,i]))!=0:
+                col = self.touch_all[:,i]
+                self.transition['touch'].append(i)
+                if i not in self.transition['all']: self.transition['all'].append(i)
+        self.transition['all'] = sorted(self.transition['all'])
+        
+    #--------------------------------------------------------------------------------------------------------#
+    def _grouping(self):
+        self.G_motion = self._grouping_template(self.transition['motion'],self.motion_all)
+        self.G_touch = self._grouping_template(self.transition['touch'],self.touch_all)
+            
+    #-------------------------------------------------#
+    def _grouping_template(self,transition,feature):
+        G_all = {}
+        for T in transition:
+            G = self.G.copy()
+            counter = 0
+            for i in range(len(self.keys)-1):
+                for j in range(i+1,len(self.keys)):
+                    k1 = self.keys[i]
+                    k2 = self.keys[j]
+                    a = feature[counter,T]
+                    counter += 1
+                    if a == 1:    G.add_edge(str(k1),str(k2),value=1)
+            G_all[T] = {}
+            G_all[T]['graph'] = G
+            G_all[T]['groups'] = []
+            C=nx.connected_component_subgraphs(G)
+            for g in C:
+                G_all[T]['groups'].append(g.nodes())
+        return G_all
+        
+    #--------------------------------------------------------------------------------------------------------#
+    def _compute_unique_color_shape(self):
+        self.unique_colors = []
+        self.unique_shapes = []
+        for i in self.Data:
+            if i != 'G':
+                c = self.Data[i]['color']
+                C = (c[0],c[1],c[2])
+                s = self.Data[i]['shape']
+                if C not in self.unique_colors: self.unique_colors.append(C)
+                if s not in self.unique_shapes: self.unique_shapes.append(s)
+                
+    #--------------------------------------------------------------------------------------------------------#
+    def _compute_unique_motion(self):
+        self.unique_motions = []
+        self.total_motion = {}
+        for i in range(2, len(self.motion)+1):  #possible windows
+            self.total_motion[i-1] = {}
+            for j in range(len(self.motion)+1-i):
+                c = self.motion[j:j+i]
+                if i == 2:  C = (c[0],c[1])
+                if i == 3:  C = (c[0],c[1],c[2])
+                if i == 4:  C = (c[0],c[1],c[2],c[3])
+                if i == 5:  C = (c[0],c[1],c[2],c[3],c[4])
+                if i == 6:  C = (c[0],c[1],c[2],c[3],c[4],c[5])
+                
+                if C not in self.unique_motions:    self.unique_motions.append(C)
+                if C not in self.total_motion[i-1]:   self.total_motion[i-1][C] = 1
+                else:                               self.total_motion[i-1][C] += 1
+    
+    #--------------------------------------------------------------------------------------------------------#
+    def _build_hyp_language(self):
+    
+        for s in self.words:
+            for word in self.words[s]:
+                if word not in self.hyp_language:
+                    self.hyp_language[word] = {}
+                    self.hyp_language[word]['count'] = 0
+                    self.hyp_language[word]['action'] = {}
+                    self.hyp_language[word]['color'] = {}
+                    self.hyp_language[word]['shape'] = {}
+                    self.hyp_language[word]['direction'] = {}
+                    self.hyp_language[word]['location'] = {}
+                self.hyp_language[word]['count'] += 1
+                
+
+                for action in self.unique_motions:
+                    if action not in self.hyp_language[word]['action']:   self.hyp_language[word]['action'][action] = 1
+                    else: self.hyp_language[word]['action'][action] += 1
+                    
+                for color in self.unique_colors:
+                    if color not in self.hyp_language[word]['color']:   self.hyp_language[word]['color'][color] = 1
+                    else: self.hyp_language[word]['color'][color] += 1
+                    
+                for shape in self.unique_shapes:
+                    if shape not in self.hyp_language[word]['shape']:   self.hyp_language[word]['shape'][shape] = 1
+                    else: self.hyp_language[word]['shape'][shape] += 1
+                    
+                #for direction in self.directions:
+                #    if direction not in self.hyp_language[word]['direction']:   self.hyp_language[word]['direction'][direction] = 1
+                #    else: self.hyp_language[word]['direction'][direction] += 1
+                
+                for location in self.locations_m_i:
+                    if location not in self.hyp_language[word]['location']:   self.hyp_language[word]['location'][location] = 1
+                    else: self.hyp_language[word]['location'][location] += 1
+                    
+                for location in self.locations_m_f:
+                    if location not in self.hyp_language[word]['location']:   self.hyp_language[word]['location'][location] = 1
+                    else: self.hyp_language[word]['location'][location] += 1
+               
+    #--------------------------------------------------------------------------------------------------------#             
+    def _test_language_hyp(self):
+        self.hyp_language_pass = {}
+        for word in self.hyp_language:
+            count = float(self.hyp_language[word]['count'])
+            for j in self.hyp_language[word]:
+                if j != 'count': 
+                    for k in self.hyp_language[word][j]:
+                        prob = self._probability(count,self.hyp_language[word][j][k])
+                        if prob>.98: 
+                            if word not in self.hyp_language_pass: 
+                                self.hyp_language_pass[word] = {}
+                                self.hyp_language_pass[word]['possibilities'] = 0
+                            if j not in self.hyp_language_pass[word]: 
+                                self.hyp_language_pass[word][j] = []
+                            self.hyp_language_pass[word]['possibilities'] += 1
+                            self.hyp_language_pass[word][j].append((k,prob))
+                            #print word,count
+                            #print j+':',k,prob
+                            #print '==---------------------=='
+                        
+    #--------------------------------------------------------------------------------------------------------#
+    def _probability(self,count,value):
+        P = (value/count)*(1.0/np.exp(5.0/count))
+        return P
+              
+    #--------------------------------------------------------------------------------------------------------#            
+    def _test_sentence_hyp(self):
+        for scene in self.words:
+            p = 1
+            flag = 0
+            words_with_hyp = []
+            for word in self.words[scene]:
+                if word in self.hyp_language_pass:
+                    words_with_hyp.append(word)
+                    flag = 1
+                    #print word,self.hyp_language_pass[word]['possibilities']
+                    p *= self.hyp_language_pass[word]['possibilities']
+            if flag == 1:
+                print 'number of possibilities : ',p
+                print '==---------------------=='
+            for L in range(1, len(words_with_hyp)+1):
+                for subset in itertools.combinations(words_with_hyp, L):
+                    self._test(subset) 
+                    
+    def _test(self,subset):
+        print subset
+    #--------------------------------------------------------------------------------------------------------#
     def _plot_graphs(self):
         self.f,self.ax = plt.subplots(len(self.transition['all']),4,figsize=(14,10)) # first col motion , second distance
         self.f.suptitle('Scene : '+str(self.scene), fontsize=20)
@@ -629,6 +501,7 @@ class process_data():
         #plt.pause(.00001)
         #plt.show()
         
+    #--------------------------------------------------------------------------------------------------------#
     def _create_moving_obj_graph(self,T):
             # Creating the graph structure
             G = nx.Graph()
@@ -690,6 +563,7 @@ class process_data():
                     G.add_edge(str(k1)+'_'+str(k2),str(k1)+'_'+str(k2)+'_mot')
             return G
             
+    #--------------------------------------------------------------------------------------------------------#
     def _plot_final_graph(self):
         for feature in [1,3]:
             for sub,T in enumerate(self.transition['all']):
@@ -758,6 +632,7 @@ class process_data():
         plt.show() # display
 
         
+    #--------------------------------------------------------------------------------------------------------#
     def _plot_scene(self):
         import sys, select, os
         all_files = sorted(listdir(self.dir2+str(self.scene)+'/'))
