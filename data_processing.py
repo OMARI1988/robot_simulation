@@ -412,10 +412,12 @@ class process_data():
                             if word not in self.hyp_language_pass: 
                                 self.hyp_language_pass[word] = {}
                                 self.hyp_language_pass[word]['possibilities'] = 0
+                                self.hyp_language_pass[word]['all'] = []
                             if j not in self.hyp_language_pass[word]: 
                                 self.hyp_language_pass[word][j] = []
                             self.hyp_language_pass[word]['possibilities'] += 1
                             self.hyp_language_pass[word][j].append((k,prob))
+                            self.hyp_language_pass[word]['all'].append((j,k))
                             #print word,count
                             #print j+':',k,prob
                             #print '==---------------------=='
@@ -427,25 +429,71 @@ class process_data():
               
     #--------------------------------------------------------------------------------------------------------#            
     def _test_sentence_hyp(self):
+        # test the hypotheses sentence by sentence
         for scene in self.words:
-            p = 1
-            flag = 0
-            words_with_hyp = []
-            for word in self.words[scene]:
-                if word in self.hyp_language_pass:
-                    words_with_hyp.append(word)
-                    flag = 1
-                    #print word,self.hyp_language_pass[word]['possibilities']
-                    p *= self.hyp_language_pass[word]['possibilities']
-            if flag == 1:
-                print 'number of possibilities : ',p
-                print '==---------------------=='
+            # get the words that have hypotheses and are in the sentence
+            words_with_hyp =  list(set(self.hyp_language_pass.keys()).intersection(self.words[scene]))
+            # generate all subsets (pick from 1 word to n words)
             for L in range(1, len(words_with_hyp)+1):
                 for subset in itertools.combinations(words_with_hyp, L):
-                    self._test(subset) 
+                    self._test(subset,scene)
+                    #print '==------== subset'
+                    #print
+            #print '==-------------== sentence'
+            #print
+
+    #------------------------------------------------------------------#                     
+    def _test(self,subset,scene):
+        # this function tests one susbet of words at a time
+        sentence = self.S[scene].split(' ')
+        all_possibilities = []      # all the possibilities gathered in one list
+        for word in subset:
+            all_possibilities.append(self.hyp_language_pass[word]['all'])
+        # find the actual possibilities for every word in the subset
+        for element in itertools.product(*all_possibilities):
+            indices = {}
+            hyp_motion = {}
+            motion_pass = 0
+            # build the indices
+            for k,word in enumerate(subset):
+                indices[word] = [i for i, x in enumerate(sentence) if x == word]
+            
+            # no 2 words are allowed to mean the same thing
+            the_same = 0
+            for i in element:
+                if element.count(i)>1:          
+                    the_same = 1
+            if the_same: 
+                continue
+               
+            # 1) does actions match ?   it should match 100%
+            for k,word in enumerate(subset):
+                if element[k][0] == 'action':
+                    a = element[k][1]
+                    if a not in hyp_motion:     hyp_motion[a] = len(indices[word])
+                    else:                       hyp_motion[a] += len(indices[word])
+            for i in self.total_motion:
+                if self.total_motion[i] == hyp_motion:
+                    motion_pass = 1
+                #else: print self.scene,'fail'
+                    #print subset
+                    #print element
                     
-    def _test(self,subset):
-        print subset
+            # 2) parse the sentence
+            if motion_pass:
+                parsed_sentence = []
+                for word in sentence:
+                    if word in subset:
+                        k = subset.index(word)
+                        parsed_sentence.append(element[k][1])
+                    else:               parsed_sentence.append('_')
+                print sentence
+                print self.scene,parsed_sentence
+                    
+                #print indices,word,element[k]
+                #G_test = nx.Graph()
+            #print '==--== hyp'
+        
     #--------------------------------------------------------------------------------------------------------#
     def _plot_graphs(self):
         self.f,self.ax = plt.subplots(len(self.transition['all']),4,figsize=(14,10)) # first col motion , second distance

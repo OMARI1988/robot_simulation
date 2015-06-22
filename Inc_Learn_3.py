@@ -6,9 +6,11 @@ from data_processing import *
 import operator
 
 P = process_data()
-for scene in range(1,200):
+for scan in range(100):
+  for scene in range(1,5):
     if scene in [891,892]: continue
     P._read(scene)                                  # Objects, Graph, Sentences
+    #if len(P.G.nodes())-1>10: continue
     P._fix_sentences()                              # remove sapces and dots
     P._more_fix_sentences()                         # remove ? ! ( )
     P._print_scentenses()
@@ -28,8 +30,23 @@ for scene in range(1,200):
     P._compute_unique_motion()                      # = P.total_motion = {1: {(0, 1): 1, (1, 0): 1}, 2: {(0, 1, 0): 1}} self.unique_motion
     
     P._build_hyp_language()                         # P.hyp_language
-    P._test_language_hyp()                          # self.hyp_language_pass
+    
+    #########################################################################################################
+    #   I will pass hypotheses that have probabilities above 98% this needs a formal definition             #
+    #########################################################################################################
+    
+    P._test_language_hyp()                          # self.hyp_language_pass > .98
     P._test_sentence_hyp()                          # test if the whole sentence make sense
+    # it should match 100% of the motion, which means the user should describe every single motion.
+    ## so if someone says pick the blue object, and the blue object was trapped under another object, this 
+    ## won't work
+    # no 2 words are allowed to mean the same thing
+    # look for entities
+    # how to idintify the moving object ?! if any ?
+    # how to udintify it's target location?! if any ?
+    # should I keep the assumption that verbs don't span in a sentence !?
+    
+    
     
     print '**================= end of scene ===================**'
 
