@@ -476,19 +476,22 @@ class process_data():
                 if self.total_motion[i] == hyp_motion:
                     motion_pass = 1
                 #else: print self.scene,'fail'
-                    #print subset
-                    #print element
                     
             # 2) parse the sentence
             if motion_pass:
                 parsed_sentence = []
+                value_sentence = []
                 for word in sentence:
                     if word in subset:
                         k = subset.index(word)
-                        parsed_sentence.append(element[k][1])
-                    else:               parsed_sentence.append('_')
+                        parsed_sentence.append(element[k][0])
+                        value_sentence.append(element[k][1])
+                    else:               
+                        parsed_sentence.append('_')
+                        value_sentence.append('_')
                 print sentence
                 print self.scene,parsed_sentence
+                print self.scene,value_sentence
                     
                 #print indices,word,element[k]
                 #G_test = nx.Graph()
